@@ -18,7 +18,7 @@ win.configure(bg=gris_claro)
 
 contador_citas=1
 
-#PRueba
+#PRueba1231231
 
 #Lista de vehiculos disponibles para seleccionar
 
