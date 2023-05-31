@@ -18,6 +18,8 @@ win.configure(bg=gris_claro)
 
 contador_citas=1
 
+#PRueba
+
 #Lista de vehiculos disponibles para seleccionar
 
 lista_vehiculos = [
