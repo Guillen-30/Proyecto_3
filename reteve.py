@@ -20,6 +20,8 @@ contador_citas=1
 
 #Lista de vehiculos disponibles para seleccionar
 
+#Holajajaj
+
 lista_vehiculos = [
     "Automóvil Partícular y Vehículo de Carga Liviana (Menor o Igual a 3500kg)",
     "Automóvil Partícular y Vehículo de Carga Liviana (Mayor a 3500kg pero menor a 8000kg)",
