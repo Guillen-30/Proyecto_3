@@ -1,10 +1,25 @@
 import tkinter as tk
+from tkinter import messagebox
 import datetime
+from validate_email_address import validate_email
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+import smtplib
+from email import encoders
 
 #Colores
 
 gris_claro='#2F3136'
 gris_oscuro='#252526'
+rosado_error='#ffbba8'
+
+
+#Anchor de ventana
+
+centro='center'
 
 #Definiciones de ventana
 
@@ -17,6 +32,20 @@ win.configure(bg=gris_claro)
 #Variable de numero de cita global
 
 contador_citas=1
+
+#Lista de las fechas que pueden ser programadas, se actualiza con la funcion generar fechas
+
+fechas_programables=[]
+
+#Lista de las fechas que ya estan programadas
+
+fechas_programadas=[]
+
+#Lista de citas programadas, por efectos de eficiencia aun no esta implementado en arbol
+
+citas_programadas=[]
+
+arbol_citas=[]
 
 #Lista de vehiculos disponibles para seleccionar
 
@@ -54,6 +83,9 @@ def borrar_items():
 
     acerca_label.place_forget()    
     
+    boton_paso_adelante.place_forget()
+    boton_paso_atras.place_forget()
+
     tipo_cita_label.place_forget()
     tipo_cita_primera.place_forget()
     tipo_cita_reinspeccion.place_forget()
@@ -82,23 +114,41 @@ def borrar_items():
     direccion_label.place_forget()
     direccion_entry.place_forget()
 
+    tipo_fecha_label.place_forget()
+    boton_fecha_automatica.place_forget()
+    boton_fecha_manual.place_forget()
+
+    amd_label.place_forget()
+    year_entry.place_forget()
+    mes_entry.place_forget()
+    dia_entry.place_forget()
+
+    hm_label.place_forget()
+    hora_entry.place_forget()
+    minuto_entry.place_forget()
+
+    listbox_fechas.place_forget()
+    scrollbar_fechas.place_forget()
+    boton_seleccionar_fecha.place_forget()
+
+
 def menu_principal():
     borrar_items()
 
-    boton_programar.place(relx=0.25,rely=0.25,anchor='center')
-    boton_cancelar.place(relx=0.50,rely=0.25,anchor='center')
-    boton_ingreso.place(relx=0.75,rely=0.25,anchor='center')
-    boton_tablero.place(relx=0.25,rely=0.50,anchor='center')
-    boton_fallas.place(relx=0.50,rely=0.50,anchor='center')
-    boton_configuracion.place(relx=0.75,rely=0.50,anchor='center')
-    boton_ayuda.place(relx=0.25,rely=0.75,anchor='center')
-    boton_acerca.place(relx=0.50,rely=0.75,anchor='center')
-    boton_salir.place(relx=0.75,rely=0.75,anchor='center')
+    boton_programar.place(relx=0.25,rely=0.25,anchor=centro)
+    boton_cancelar.place(relx=0.50,rely=0.25,anchor=centro)
+    boton_ingreso.place(relx=0.75,rely=0.25,anchor=centro)
+    boton_tablero.place(relx=0.25,rely=0.50,anchor=centro)
+    boton_fallas.place(relx=0.50,rely=0.50,anchor=centro)
+    boton_configuracion.place(relx=0.75,rely=0.50,anchor=centro)
+    boton_ayuda.place(relx=0.25,rely=0.75,anchor=centro)
+    boton_acerca.place(relx=0.50,rely=0.75,anchor=centro)
+    boton_salir.place(relx=0.75,rely=0.75,anchor=centro)
 
 #Clase de vehiculo
 
-class Vehiculo:
-    def __init__(self, numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha_hora, estado):
+class vehiculo:
+    def __init__(self, numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado):
         self.numero_cita = numero_cita
         self.tipo_cita = tipo_cita
         self.numero_placa = numero_placa
@@ -109,8 +159,17 @@ class Vehiculo:
         self.telefono = telefono
         self.correo = correo
         self.direccion = direccion
-        self.fecha_hora = fecha_hora
+        self.fecha= fecha
+        self.hora = hora
         self.estado = estado
+    def __repr__(self) -> str:
+        return f'Vehiculo\nNumero Cita: {self.numero_cita}\nTipo de Cita: {self.tipo_cita}\nNumero de Placa: {self.numero_placa}\nTipo de Vehiculo: {self.tipo_vehiculo}\nMarca: {self.marca}\nModelo: {self.modelo}\nPropietario: {self.propietario}\nTelefono: {self.telefono}\nCorreo: {self.correo}\nDireccion: {self.direccion}\nFecha: {self.fecha}\nHora: {self.hora}\nEstado: {self.estado}'
+
+#Funcion de programar citas
+
+def programar_citas():
+    numero_cita=obtener_numero_cita()
+    paso_tipo_cita()
 
 #Funcion para obtener el numero de cita que se debe agregar
 
@@ -120,49 +179,455 @@ def obtener_numero_cita():
     contador_citas += 1
     return numero_cita
 
-#Funciones para obtener fecha automatica
+#Funcion para llamar cada paso de la programacion de citas
+
+def paso_tipo_cita():
+    borrar_items()
+    
+    boton_paso_adelante.config(command=paso_numero_placa)
+
+    tipo_cita_label.place(relx=0.5,rely=0.3,anchor=centro)
+    tipo_cita_primera.place(relx=0.35,rely=0.4,anchor=centro)
+    tipo_cita_reinspeccion.place(relx=0.65,rely=0.4,anchor=centro)
+
+    boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_numero_placa():
+    borrar_items()
+
+    boton_paso_adelante.config(command=paso_tipo_vehiculo)
+    boton_paso_atras.config(command=paso_tipo_cita)
+
+    ingrese_placa_label.place(relx=0.5,rely=0.3,anchor=centro)
+    numero_placa_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+    boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+    boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_tipo_vehiculo():
+    if numero_placa_entry.get()=='':
+        numero_placa_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar un numero de placa antes de ir al siguiente paso')
+        paso_numero_placa()
+    elif len(numero_placa_entry.get()) not in range(1,9):
+        numero_placa_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: El numero de placa debe tener entre 1 y 8 caracteres')
+        paso_numero_placa()
+    else:
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_marca)
+        boton_paso_atras.config(command=paso_numero_placa)
+
+        tipo_vehiculo_label.place(relx=0.5,rely=0.3,anchor=centro)
+        tipo_vehiculo_listbox.place(relx=0.5,rely=0.6,anchor=centro)
+
+        boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_marca():
+    global tipo_vehiculo_var
+    try:
+        if tipo_vehiculo_listbox.get(tipo_vehiculo_listbox.curselection())!='':
+            borrar_items()
+
+            boton_paso_adelante.config(command=paso_modelo)
+            boton_paso_atras.config(command=paso_tipo_vehiculo)
+
+            marca_vehiculo_label.place(relx=0.5,rely=0.3,anchor=centro)
+            marca_vehiculo_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+            boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+            boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+            boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+    except:
+        messagebox.showerror('Error','Error: Debe seleccionar un tipo de vehiculo antes de ir al siguiente paso')
+        paso_tipo_vehiculo()
+    
+def paso_modelo():
+    if marca_vehiculo_entry.get()=='':
+        marca_vehiculo_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar una marca de vehiculo antes de ir al siguiente paso')
+        paso_marca()
+    elif len(marca_vehiculo_entry.get()) not in range(3,16):
+        marca_vehiculo_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: La marca del vehiculo debe tener entre 3 y 15 caracteres')
+        paso_marca()
+    else:
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_propietario)
+        boton_paso_atras.config(command=paso_marca)
+
+        modelo_vehiculo_label.place(relx=0.5,rely=0.3,anchor=centro)
+        modelo_vehiculo_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+        boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_propietario():
+    if modelo_vehiculo_entry.get()=='':
+        modelo_vehiculo_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar un modelo de vehiculo antes de ir al siguiente paso')
+        paso_modelo()
+    elif len(modelo_vehiculo_entry.get()) not in range(1,16):
+        modelo_vehiculo_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: El modelo del vehiculo debe tener entre 1 y 15 caracteres')
+        paso_modelo()
+    else:
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_telefono)
+        boton_paso_atras.config(command=paso_modelo)
+
+        propietario_label.place(relx=0.5,rely=0.3,anchor=centro)
+        propietario_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+        boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_telefono():
+    if propietario_entry.get()=='':
+        propietario_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar un nombre de propietario antes de ir al siguiente paso')
+        paso_propietario()
+    elif len(propietario_entry.get()) not in range(6,41):
+        propietario_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: El nombre del propietario del vehiculo debe tener entre 6 y 40 caracteres')
+        paso_propietario()
+    else:
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_correo)
+        boton_paso_atras.config(command=paso_propietario)
+
+        telefono_label.place(relx=0.5,rely=0.3,anchor=centro)
+        telefono_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+        boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_correo():
+    if telefono_entry.get()=='':
+        telefono_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar un numero de telefono antes de ir al siguiente paso')
+        paso_telefono()
+    elif len(telefono_entry.get()) > 20:
+        telefono_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: El telefono del propietario debe tener 20 caracteres')
+        paso_telefono()
+    else:
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_direccion)
+        boton_paso_atras.config(command=paso_telefono)
+
+        correo_label.place(relx=0.5,rely=0.3,anchor=centro)
+        correo_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+        boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_direccion():
+    existe=validate_email(correo_entry.get(),verify=True)
+    if correo_entry.get()=='':
+        correo_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar un correo antes de ir al siguiente paso')
+        paso_correo()
+    elif not existe:
+        correo_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar un correo valido')
+        paso_correo()
+    else:
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_fecha)
+        boton_paso_atras.config(command=paso_correo)
+
+        direccion_label.place(relx=0.5,rely=0.3,anchor=centro)
+        direccion_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+        boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_fecha():
+    global fechas_programables
+    if direccion_entry.get()=='':
+        direccion_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: Debe ingresar una direccion antes de ir al siguiente paso')
+        paso_direccion()
+    elif len(direccion_entry.get()) not in range(10,41):
+        direccion_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Error: La direccion del propietario debe tener entre 10 y 40 caracteres')
+        paso_direccion()
+    else:
+        generar_fechas_disponibles()
+        borrar_items()
+
+        boton_paso_adelante.config(command=paso_programar)
+        boton_paso_atras.config(command=paso_direccion)
+
+        tipo_fecha_label.place(relx=0.5,rely=0.3,anchor=centro)
+        boton_fecha_manual.place(relx=0.4,rely=0.4,anchor=centro)
+        boton_fecha_automatica.place(relx=0.6,rely=0.4,anchor=centro)
+
+        boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_fecha_manual():
+    global tipo_fecha
+
+    tipo_fecha='m'
+
+    borrar_items()
+
+    amd_label.place(relx=0.5,rely=0.2,anchor=centro)
+    year_entry.place(relx=0.45,rely=0.3,anchor=centro)
+    mes_entry.place(relx=0.51,rely=0.3,anchor=centro)
+    dia_entry.place(relx=0.55,rely=0.3,anchor=centro)
+
+    hm_label.place(relx=0.5,rely=0.4,anchor=centro)
+    hora_entry.place(relx=0.47,rely=0.5,anchor=centro)
+    minuto_entry.place(relx=0.53,rely=0.5,anchor=centro)
+
+    boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+    boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_fecha_automatica():
+    global tipo_fecha,fechas_disponibles
+
+    tipo_fecha='a'
+
+    borrar_items()
+
+    fechas_disponibles = generar_fechas_disponibles()
+    listbox_fechas.place(relx=0.5,rely=0.4,height=235,anchor=centro)
+    scrollbar_fechas.place(relx=0.6,rely=0.4,height=235,anchor=centro)
+
+    boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+    boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def paso_programar():
+    if tipo_fecha=='m':
+        if year_entry.get()=='' or not year_entry.get().isdigit:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            hora_entry.config(bg=rosado_error)
+            minuto_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar un numero que represente un año antes de continuar')
+            paso_fecha_manual()
+        elif mes_entry.get()==''or not mes_entry.get().isdigit:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar un numero que represente un mes antes de continuar')
+            paso_fecha_manual()
+        elif dia_entry.get()==''or not dia_entry.get().isdigit:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar un numero que represente un dia antes de continuar')
+            paso_fecha_manual()
+        elif hora_entry.get()==''or not hora_entry.get().isdigit:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            hora_entry.config(bg=rosado_error)
+            minuto_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar un numero que represente una hora antes de continuar')
+            paso_fecha_manual()
+        elif minuto_entry.get()==''or not minuto_entry.get().isdigit:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            hora_entry.config(bg=rosado_error)
+            minuto_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar un numero que represente un minuto antes de continuar')
+            paso_fecha_manual()
+        fecha_str = f'{year_entry.get()}-{mes_entry.get()}-{dia_entry.get()}'
+        hora_str=f'{hora_entry.get()}:{minuto_entry.get()}'
+        fecha_hora_str=f'{year_entry.get()}-{mes_entry.get()}-{dia_entry.get()} {hora_entry.get()}:{minuto_entry.get()}'
+        try:
+            fecha = datetime.datetime.strptime(fecha_str, "%Y-%m-%d")
+            hora=datetime.datetime.strptime(hora_str,"%H:%M")
+        except:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            hora_entry.config(bg=rosado_error)
+            minuto_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar una fecha valida')
+            paso_fecha_manual()
+        
+        fecha_hora=datetime.datetime.strptime(fecha_hora_str, "%Y-%m-%d %H:%M")
+        if fecha_hora_str not in fechas_programables:
+            year_entry.config(bg=rosado_error)
+            mes_entry.config(bg=rosado_error)
+            dia_entry.config(bg=rosado_error)
+            hora_entry.config(bg=rosado_error)
+            minuto_entry.config(bg=rosado_error)
+            messagebox.showerror('Error','Error: Debe ingresar una fecha valida')
+            paso_fecha_manual()
+    else:
+        fecha_hora_str,fecha_str,hora_str=seleccionar_fecha()
+    print(fecha_hora_str,fecha_hora_str in fechas_programables)
+    for i in fechas_programables:
+        if i==fecha_hora_str:
+            fechas_programables.remove(i)
+            fechas_programadas.append(i)
+
+    numero_cita = obtener_numero_cita()
+    tipo_cita = tipo_cita_var.get()
+    numero_placa = numero_placa_entry.get()
+    tipo_vehiculo = tipo_vehiculo_listbox.get('active')
+    marca = marca_vehiculo_entry.get()
+    modelo = modelo_vehiculo_entry.get()
+    propietario = propietario_entry.get()
+    telefono = telefono_entry.get()
+    correo = correo_entry.get()
+    direccion = direccion_entry.get()
+    fecha,hora=fecha_str,hora_str
+    estado = "PENDIENTE"
+
+    cita = vehiculo(numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado)
+    for i in citas_programadas:
+        if i.fecha == cita.fecha and i.numero_placa==cita.numero_placa:
+            if i.tipo_cita == cita.tipo_cita:
+                messagebox.showerror('Error','Error, no puede agendar una cita para el mismo vehiculo el mismo dia')
+                paso_fecha()
+            else:
+                if i.tipo_cita==0 and cita.tipo_cita==1:
+                    if int(i.hora[:2])>int(cita.hora):
+                        pass
+                    else:
+                        if int(i.hora[:2])==int(cita.hora[:2]):
+                            if int(i.hora[3:6])<=int(cita.hora[3:6]):
+                                messagebox.showerror('Error','Error, no puede agendar una cita de reinspeccion para el mismo vehiculo el mismo dia si la fecha y hora es anterior a la primera cita')
+                                paso_fecha()
+
+    
+
+    print(cita)
+    citas_programadas.append(cita)
+    print(citas_programadas)
+    agregar_cita_abb(cita)
+    enviar_email_cita(cita)
+    messagebox.showinfo("Cita programada", "La cita ha sido programada correctamente, se ha enviado un comprobante a su direccion de correo electronico")
+    menu_principal() 
+
+#Funcion para enviar el correo comprobante de cita
+
+def enviar_email_cita(cita):
+    try:
+        msg = MIMEMultipart()
+    # setup the parameters of the message 
+        password = "npglayqvauxdpyhq"
+        msg['From'] = "emailsproyectopython@gmail.com"
+        msg['To'] = cita.correo
+        msg['Subject'] = "Comprobante cita RETEVE"
+
+        texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora}'
+        msg.attach(MIMEText(texto, 'plain'))
+        # create server 
+        server = smtplib.SMTP('smtp.gmail.com: 587')
+        server.starttls()
+        # Login Credentials for sending the mail 
+        server.login(msg['From'], password)
+        # send the message via the server. 
+        server.send_message(msg)
+        server.quit()
+        print ('Email enviado exitosamente')   
+    except:
+        print('Ha ocurrido un error con la comunicacion al servidor, verifique su conexion a internet')
+
+#Funcion para agregar la cita al arbol
+
+def agregar_cita_abb(cita, nodo=None):
+    if nodo is None:
+        # Caso base: si el nodo es None, crea un nuevo nodo con la cita y lo devuelve
+        return {'cita': cita, 'izquierda': None, 'derecha': None}
+    
+    # Convierte las fechas y horas a objetos datetime para compararlas
+    fecha_hora_cita = datetime.strptime(cita.fecha + ' ' + cita.hora, '%Y-%m-%d %H:%M')
+    fecha_hora_nodo = datetime.strptime(nodo['cita'].fecha + ' ' + nodo['cita'].hora, '%Y-%m-%d %H:%M')
+    
+    # Compara la fecha y hora de la cita actual con la del nodo actual para determinar la ubicación en el árbol
+    if fecha_hora_cita < fecha_hora_nodo:
+        # Si la fecha y hora de la cita es menor, se inserta en el subárbol izquierdo
+        nodo['izquierda'] = agregar_cita_abb(cita, nodo['izquierda'])
+    else:
+        # Si la fecha y hora de la cita es mayor o igual, se inserta en el subárbol derecho
+        nodo['derecha'] = agregar_cita_abb(cita, nodo['derecha'])
+    
+    return nodo
+
+#HACER QUE SOLO SE GENEREN EN EL RANGO DE FECHAS Y DE HORAS Y DE INTERVALOS 
 
 def generar_fechas_disponibles():
+    global fechas_programables
     fechas_disponibles = []
     fecha_actual = datetime.datetime.now()
     duracion_cita = datetime.timedelta(minutes=20)
     horario_inicio = datetime.datetime(fecha_actual.year, fecha_actual.month, fecha_actual.day, 6, 0)
-    horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day, 21, 0)
+    try:
+        horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day, 21, 0)
+    except:
+        try:
+            horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day-1, 21, 0)
+        except:
+            horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day-2, 21, 0)
 
     fecha_actual += duracion_cita - datetime.timedelta(minutes=fecha_actual.minute % 20)
     for i in range(30):
         while fecha_actual <= horario_fin + duracion_cita and fecha_actual <= horario_inicio + datetime.timedelta(days=30):
+            if fecha_actual in fechas_programadas:
+                pass
             fechas_disponibles.append(fecha_actual)
             fecha_actual += duracion_cita
         dia = datetime.timedelta(days=1)
         fecha_actual += dia
+    for i in fechas_disponibles:
+        fechas_programables.append(str(i)[:16])
+    for fecha in fechas_disponibles:
+        listbox_fechas.insert(tk.END, fecha.strftime("%d/%m/%Y %H:%M"))
     return fechas_disponibles
 
 def seleccionar_fecha():
-    seleccion_completa = tk.listbox.get(tk.listbox.curselection())
+    seleccion_completa = listbox_fechas.get(listbox_fechas.curselection())
     seleccion_fecha = datetime.datetime.strptime(seleccion_completa, "%d/%m/%Y %H:%M")
     fecha = seleccion_fecha.date()
     hora = seleccion_fecha.time()
-    print("Fecha seleccionada:", fecha)
-    print("Hora seleccionada:", hora)
+    return str(seleccion_fecha)[:16],str(fecha),str(hora)[:-3]
 
 def fecha_automatica():
     global fechas_disponibles
     fechas_disponibles = generar_fechas_disponibles()
     for fecha in fechas_disponibles:
-        lista_fechas.insert(tk.END, fecha.strftime("%d/%m/%Y %H:%M"))
+        listbox_fechas.insert(tk.END, fecha.strftime("%d/%m/%Y %H:%M"))
 
-#Funcion de programar citas
+#Funcion de configuracion del programa
 
-###Llama a todos los botones
+def configuracion():
+    pass
 
 #Funcion para desplegar la informacion del programa
 
 def acerca_de():
     borrar_items()
 
-    boton_menu.place(relx=0.05,rely=0.05,anchor='center')
-    acerca_label.place(relx=0.5,rely=0.4, anchor='center')
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+    acerca_label.place(relx=0.5,rely=0.4, anchor=centro)
 
 #Boton y label inicio
 
@@ -175,7 +640,7 @@ if True:
 if True:
     boton_menu=tk.Button(win, text='←', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,width=3,height=1,border=0)
 
-    boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+    boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=programar_citas)
     boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
@@ -189,83 +654,100 @@ if True:
 
 if True:
 
+    #Paso atras y paso adelante
+
+    boton_paso_atras=tk.Button(win, text='← ANTERIOR', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,border=0)
+    boton_paso_adelante=tk.Button(win, text='SIGUIENTE →', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,border=0)
+
     #Tipo de cita
 
     tipo_cita_var=tk.IntVar()
-    tipo_cita_label=tk.Label(win, font ='Consolas 10', text = 'Indique el tipo de cita',fg='white',bg =gris_claro)
-    tipo_cita_primera=tk.Checkbutton(win, text='Primera Cita', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=0)
-    tipo_cita_reinspeccion=tk.Checkbutton(win, text='Reinspeccion', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=1)
+    tipo_cita_label=tk.Label(win, font ='Dubai 20', text = 'Indique el tipo de cita',fg='white',bg =gris_claro)
+    tipo_cita_primera=tk.Checkbutton(win,font='Dubai 20', text='Primera Cita', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=0)
+    tipo_cita_reinspeccion=tk.Checkbutton(win,font='Dubai 20', text='Reinspeccion', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=1)
 
     #Numero de placa
 
     numero_placa_var=tk.StringVar()
-    ingrese_placa_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese su numero de placa',fg='white',bg =gris_claro)
-    numero_placa_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=numero_placa_var)
+    ingrese_placa_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese su numero de placa',fg='white',bg =gris_claro)
+    numero_placa_entry=tk.Entry(win,width=8,font='Dubai 20',bg='white',fg='black',textvariable=numero_placa_var)
 
     #Tipo de vehiculo
 
     tipo_vehiculo_var=tk.StringVar()
-    tipo_vehiculo_label=tk.Label(win, font ='Consolas 10', text = 'Seleccione su tipo de vehiculo',fg='white',bg =gris_claro)
-    tipo_vehiculo_listbox=tk.Listbox(win, height=9,listvariable=tipo_vehiculo_var)
+    tipo_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Seleccione su tipo de vehiculo',fg='white',bg =gris_claro)
+    tipo_vehiculo_listbox=tk.Listbox(win, height=8,width=67,bg=gris_oscuro,fg='white',font='Dubai 15',border=0,borderwidth=0,listvariable=tipo_vehiculo_var)
     tipo_vehiculo_listbox.insert(0, *lista_vehiculos)
 
     #Marca del vehiculo
 
     marca_vehiculo_var=tk.StringVar()
-    marca_vehiculo_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese la marca de su vehiculo',fg='white',bg =gris_claro)
-    marca_vehiculo_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=marca_vehiculo_var)
+    marca_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la marca de su vehiculo',fg='white',bg =gris_claro)
+    marca_vehiculo_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=marca_vehiculo_var)
 
     #Modelo del vehiculo
 
     modelo_vehiculo_var=tk.StringVar()
-    modelo_vehiculo_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese el modelo de su vehiculo',fg='white',bg =gris_claro)
-    modelo_vehiculo_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=modelo_vehiculo_var)
+    modelo_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el modelo de su vehiculo',fg='white',bg =gris_claro)
+    modelo_vehiculo_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=modelo_vehiculo_var)
 
     #Propietario del vehiculo
 
     propietario_var=tk.StringVar()
-    propietario_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese el nombre del propietario del vehiculo',fg='white',bg =gris_claro)
-    propietario_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=propietario_var)
+    propietario_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el nombre del propietario del vehiculo',fg='white',bg =gris_claro)
+    propietario_entry=tk.Entry(win,width=40,bg='white',fg='black',font='Dubai 20',textvariable=propietario_var)
 
     #Telefono del propietario del vehiculo
 
     telefono_var=tk.StringVar()
-    telefono_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese el telefono del propietario del vehiculo',fg='white',bg =gris_claro)
-    telefono_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=telefono_var)
+    telefono_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el telefono del propietario del vehiculo',fg='white',bg =gris_claro)
+    telefono_entry=tk.Entry(win,width=20,bg='white',font='Dubai 20',fg='black',textvariable=telefono_var)
 
     #Correo electronico del propietario del vehiculo
 
     correo_var=tk.StringVar()
-    correo_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese el correo del propietario del vehiculo',fg='white',bg =gris_claro)
-    correo_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=correo_var)
+    correo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el correo del propietario del vehiculo',fg='white',bg =gris_claro)
+    correo_entry=tk.Entry(win,width=25,bg='white',font='Dubai 20',fg='black',textvariable=correo_var)
 
     #Direccion del propietario del vehiculo
 
     direccion_var=tk.StringVar()
-    direccion_label=tk.Label(win, font ='Consolas 10', text = 'Ingrese la direccion del propietario del vehiculo',fg='white',bg =gris_claro)
-    direccion_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=direccion_var)
+    direccion_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la direccion del propietario del vehiculo',fg='white',bg =gris_claro)
+    direccion_entry=tk.Entry(win,width=40,bg='white',font='Dubai 20',fg='black',textvariable=direccion_var)
 
     #Fecha y hora de la cita
 
-    tipo_fecha=tk.StringVar()
-    fecha_var=tk.StringVar()
-    hora_var=tk.StringVar()
 
-    boton_fecha_manual=tk.Button(win, text='INGRESAR FECHA MANUALMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=lambda:print("Fecha manual"))
-    boton_fecha_automatica=tk.Button(win, text='INGRESAR FECHA AUTOMATICAMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=lambda:print("Fecha automatica"))
+    year_var=tk.StringVar()
+    mes_var=tk.StringVar()
+    dia_var=tk.StringVar()
+
+    hora_var=tk.StringVar()
+    minuto_var=tk.StringVar()
+
+    tipo_fecha_label=tk.Label(win, font ='Dubai 20', text = 'Como desea ingresar la fecha de su cita?',fg='white',bg =gris_claro)
+    boton_fecha_manual=tk.Button(win, text='MANUALMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=paso_fecha_manual)
+    boton_fecha_automatica=tk.Button(win, text='AUTOMATICAMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=paso_fecha_automatica)
 
         ##Si la fecha es manual
 
-    fecha_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=fecha_var)
-    hora_entry=tk.Entry(win,width=25,bg='white',fg='black',textvariable=hora_var)
+    amd_label=tk.Label(win, font ='Dubai 20', text = 'Año/Mes/Dia',fg='white',bg =gris_claro)
+
+    year_entry=tk.Entry(win,width=4,bg='white',fg='black',font='Dubai 20',textvariable=year_var)
+    mes_entry=tk.Entry(win,width=2,bg='white',fg='black',font='Dubai 20',textvariable=mes_var)
+    dia_entry=tk.Entry(win,width=2,bg='white',fg='black',font='Dubai 20',textvariable=dia_var)
+
+    hm_label=tk.Label(win, font ='Dubai 20', text = 'Horas/Minutos',fg='white',bg=gris_claro)
+    hora_entry=tk.Entry(win,width=2,bg='white',font='Dubai 20',fg='black',textvariable=hora_var)
+    minuto_entry=tk.Entry(win,width=2,bg='white',font='Dubai 20',fg='black',textvariable=minuto_var)
 
         ##Si la fecha es automatica
     
-    scrollbar = tk.Scrollbar(win)
-    lista_fechas = tk.Listbox(win, yscrollcommand=scrollbar.set)
-    scrollbar.config(command=lista_fechas.yview)
+    scrollbar_fechas = tk.Scrollbar(win)
+    listbox_fechas = tk.Listbox(win,font='Dubai 10', yscrollcommand=scrollbar_fechas.set)
+    scrollbar_fechas.config(command=listbox_fechas.yview)
 
-    boton_seleccionar_fecha = tk.Button(win, text="Seleccionar", command=seleccionar_fecha)
+    boton_seleccionar_fecha = tk.Button(win, text="Seleccionar",font='Dubai 20',bg=gris_oscuro,fg='white', command=seleccionar_fecha)
 
 # Agregar valores al ListBox
 
@@ -273,8 +755,8 @@ if True:
 
 #Widgets que deben aparecer al inicio del programa
 
-label_inicio.place(relx=0.5,rely=0.3,anchor='center')
-boton_inicio.place(relx=0.5,rely=0.6,anchor='center')
+label_inicio.place(relx=0.5,rely=0.3,anchor=centro)
+boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
 
 
 
