@@ -16,7 +16,6 @@ gris_claro='#2F3136'
 gris_oscuro='#252526'
 rosado_error='#ffbba8'
 
-
 #Anchor de ventana
 
 centro='center'
@@ -47,6 +46,32 @@ citas_programadas=[]
 
 arbol_citas=[]
 
+#Diccionario de configuracion y vehiculos y sus tarifas
+
+configuracion={'lineas_trabajo':6,
+'hora_inicial':6,
+'hora_final':21,
+'minutos_cita':20,
+'dias_reinspeccion':30,
+'fallas_graves':4,
+'meses_citas':1,
+'iva':13.0}
+
+tabla_tarifas = {
+    "Automóvil Partícular y Vehículo de Carga Liviana (Menor o Igual a 3500kg)": 10920,
+    "Automóvil Partícular y Vehículo de Carga Liviana (Mayor a 3500kg pero menor a 8000kg)": 14380,
+    "Vehículo de Carga Pesada y Cabezales (Mayor o igual a 8000kg)": 14380,
+    "Taxis": 11785,
+    "Autobuses, Buses y Microbuses": 14380,
+    "Motocicletas": 7195,
+    "Equipo Especial de Obras": 14380,
+    "Equipo Especial Agrícola": 6625
+}
+
+tarifas_entries={}
+
+tarifas_labels=[]
+
 #Lista de vehiculos disponibles para seleccionar
 
 lista_vehiculos = [
@@ -66,11 +91,17 @@ acerca_label = tk.Label(win, text='\nReteve\nVersion: 1.0\nFecha de Creacion: 19
 
 def borrar_items():
 
+    #Botones de inicio
+
     label_inicio.place_forget()
     boton_inicio.place_forget()
 
+    #Boton de volver al menu
+
     boton_menu.place_forget()
     
+    #Botones de menu principal
+
     boton_programar.place_forget()
     boton_cancelar.place_forget()
     boton_ingreso.place_forget()
@@ -81,8 +112,12 @@ def borrar_items():
     boton_acerca.place_forget()
     boton_salir.place_forget()
 
+    #Label de informacion de acerca de
+
     acerca_label.place_forget()    
     
+    #Botones de programar citas
+
     boton_paso_adelante.place_forget()
     boton_paso_atras.place_forget()
 
@@ -131,6 +166,33 @@ def borrar_items():
     scrollbar_fechas.place_forget()
     boton_seleccionar_fecha.place_forget()
 
+    #Botones de configuracion
+
+    lineas_label.pack_forget()
+    lineas_entry.pack_forget()
+    hora_inicial_label.pack_forget()
+    hora_inicial_entry.pack_forget()
+    hora_final_label.pack_forget()
+    hora_final_entry.pack_forget()
+    minutos_cita_label.pack_forget()
+    minutos_cita_entry.pack_forget()
+    dias_reinspeccion_label.pack_forget()
+    dias_reinspeccion_entry.pack_forget()
+    fallas_graves_label.pack_forget()
+    fallas_graves_entry.pack_forget()
+    meses_citas_label.pack_forget()
+    meses_citas_entry.pack_forget()
+    iva_label.pack_forget()
+    iva_entry.pack_forget()
+
+    for i in tarifas_entries:
+        tarifas_entries[i].pack_forget()
+    for i in tarifas_labels:
+        i.pack_forget()
+
+    tarifas_label.pack_forget()
+
+    boton_aplicar.pack_forget()
 
 def menu_principal():
     borrar_items()
@@ -555,52 +617,40 @@ def enviar_email_cita(cita):
 
 def agregar_cita_abb(cita, nodo=None):
     if nodo is None:
-        # Caso base: si el nodo es None, crea un nuevo nodo con la cita y lo devuelve
         return {'cita': cita, 'izquierda': None, 'derecha': None}
-    
-    # Convierte las fechas y horas a objetos datetime para compararlas
+
     fecha_hora_cita = datetime.strptime(cita.fecha + ' ' + cita.hora, '%Y-%m-%d %H:%M')
     fecha_hora_nodo = datetime.strptime(nodo['cita'].fecha + ' ' + nodo['cita'].hora, '%Y-%m-%d %H:%M')
-    
-    # Compara la fecha y hora de la cita actual con la del nodo actual para determinar la ubicación en el árbol
+
     if fecha_hora_cita < fecha_hora_nodo:
-        # Si la fecha y hora de la cita es menor, se inserta en el subárbol izquierdo
         nodo['izquierda'] = agregar_cita_abb(cita, nodo['izquierda'])
     else:
-        # Si la fecha y hora de la cita es mayor o igual, se inserta en el subárbol derecho
         nodo['derecha'] = agregar_cita_abb(cita, nodo['derecha'])
     
     return nodo
 
-#HACER QUE SOLO SE GENEREN EN EL RANGO DE FECHAS Y DE HORAS Y DE INTERVALOS 
-
 def generar_fechas_disponibles():
+    print(configuracion['minutos_cita'])
     global fechas_programables
     fechas_disponibles = []
     fecha_actual = datetime.datetime.now()
-    duracion_cita = datetime.timedelta(minutes=20)
-    horario_inicio = datetime.datetime(fecha_actual.year, fecha_actual.month, fecha_actual.day, 6, 0)
-    try:
-        horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day, 21, 0)
-    except:
-        try:
-            horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day-1, 21, 0)
-        except:
-            horario_fin = datetime.datetime(fecha_actual.year, fecha_actual.month+1, fecha_actual.day-2, 21, 0)
+    duracion_cita = datetime.timedelta(minutes=configuracion['minutos_cita'])
+    horario_inicio = datetime.datetime.combine(fecha_actual.date(), datetime.time(configuracion['hora_inicial'], 0))
+    horario_fin = datetime.datetime.combine((fecha_actual + datetime.timedelta(days=30*configuracion['meses_citas'])).date(), datetime.time(configuracion['hora_final'], 1))
+    horario_fin_dia_siguiente = horario_fin + datetime.timedelta(days=1)
 
-    fecha_actual += duracion_cita - datetime.timedelta(minutes=fecha_actual.minute % 20)
-    for i in range(30):
-        while fecha_actual <= horario_fin + duracion_cita and fecha_actual <= horario_inicio + datetime.timedelta(days=30):
-            if fecha_actual in fechas_programadas:
-                pass
-            fechas_disponibles.append(fecha_actual)
-            fecha_actual += duracion_cita
-        dia = datetime.timedelta(days=1)
-        fecha_actual += dia
-    for i in fechas_disponibles:
-        fechas_programables.append(str(i)[:16])
+    fecha_actual += duracion_cita - datetime.timedelta(minutes=fecha_actual.minute % configuracion['minutos_cita'])
+
+    while fecha_actual <= horario_fin_dia_siguiente:
+        if fecha_actual.time() >= horario_inicio.time() and fecha_actual.time() <= horario_fin.time():
+            if fecha_actual not in fechas_programadas:
+                fechas_disponibles.append(fecha_actual)
+        fecha_actual += duracion_cita
+
     for fecha in fechas_disponibles:
+        fechas_programables.append(str(fecha)[:16])
         listbox_fechas.insert(tk.END, fecha.strftime("%d/%m/%Y %H:%M"))
+
     return fechas_disponibles
 
 def seleccionar_fecha():
@@ -618,8 +668,141 @@ def fecha_automatica():
 
 #Funcion de configuracion del programa
 
-def configuracion():
-    pass
+def configuracion_pt1():
+    borrar_items()
+
+    boton_paso_adelante.config(command=configuracion_pt2)
+
+    # espacio=tk.Label(win, text=" ", bg=gris_claro, fg="white", font='Dubai 10', anchor="w")
+    # espacio.pack(padx=10, pady=5)
+
+    lineas_label.pack(padx=10, pady=3)
+    lineas_entry.pack(padx=10, pady=3)
+    
+
+    hora_inicial_label.pack(padx=10, pady=3)
+    hora_inicial_entry.pack(padx=10, pady=3)
+    
+
+    hora_final_label.pack(padx=10, pady=3)
+    hora_final_entry.pack(padx=10, pady=3)
+    
+
+    minutos_cita_label.pack(padx=10, pady=3)
+    minutos_cita_entry.pack(padx=10, pady=3)
+    
+
+    dias_reinspeccion_label.pack(padx=10, pady=3)
+    dias_reinspeccion_entry.pack(padx=10, pady=3)
+    
+
+    fallas_graves_label.pack(padx=10, pady=3)
+    fallas_graves_entry.pack(padx=10, pady=3)
+    
+
+    meses_citas_label.pack(padx=10, pady=3)
+    meses_citas_entry.pack(padx=10, pady=3)
+    
+
+    iva_label.pack(padx=10, pady=3)
+    iva_entry.pack(padx=10, pady=3)
+    
+
+    boton_paso_adelante.place(relx=0.9,rely=0.95,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+    boton_menu.lift()
+
+def configuracion_pt2():
+    borrar_items()
+
+    boton_paso_atras.config(command=configuracion_pt1)
+
+    for vehiculo, tarifa in tabla_tarifas.items():
+        label = tk.Label(win, text=vehiculo, bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        label.pack(padx=10, pady=1)
+        tarifas_labels.append(label)
+        entry = tk.Entry(win,font='Dubai 12',justify='center')
+        entry.insert(0, tarifa)
+        entry.pack(padx=10, pady=1)
+        tarifas_entries[vehiculo] = entry
+
+    boton_aplicar.pack(padx=10, pady=10)
+
+    tarifas_label.pack(fill="x", padx=10, pady=5)
+
+    boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
+
+def aplicar_configuracion():
+    global tabla_tarifas, configuracion
+    lineas_trabajo = lineas_entry.get()
+    hora_inicial = hora_inicial_entry.get()
+    hora_final = hora_final_entry.get()
+    minutos_cita = minutos_cita_entry.get()
+    dias_reinspeccion = dias_reinspeccion_entry.get()
+    fallas_graves = fallas_graves_entry.get()
+    meses_citas = meses_citas_entry.get()
+    iva = iva_entry.get()
+
+    for vehiculo, entry in tarifas_entries.items():
+        tabla_tarifas[vehiculo] = entry.get()
+    
+    # Lógica adicional para guardar la configuración
+    
+    # Ejemplo de impresión de los valores obtenidos
+    print("Cantidad de líneas de trabajo:", lineas_trabajo)
+    print("Hora inicial:", hora_inicial)
+    print("Hora final:", hora_final)
+    print("Minutos por cada cita de revisión:", minutos_cita)
+    print("Cantidad máxima de días para reinspección:", dias_reinspeccion)
+    print("Cantidad de fallas graves para sacar vehículo de circulación:", fallas_graves)
+    print("Cantidad de meses para desplegar citas:", meses_citas)
+    print("% de Impuesto al Valor Agregado (IVA) sobre la tarifa:", iva)
+    print("Tabla de Tarifas:")
+    for vehiculo, tarifa in tabla_tarifas.items():
+        print(f"{vehiculo}: {tarifa}")
+
+    # Validar los valores ingresados
+    if not lineas_trabajo.isdigit() or int(lineas_trabajo) < 1 or int(lineas_trabajo) > 25:
+        messagebox.showerror("Error", "Ingrese una cantidad válida de líneas de trabajo (entre 1 y 25).")
+        return
+    if not hora_inicial.isdigit() or int(hora_inicial) < 0 or int(hora_inicial) > 23:
+        messagebox.showerror("Error", "Ingrese una hora inicial válida (entre 0 y 23).")
+        return
+    if not hora_final.isdigit() or int(hora_final) < 0 or int(hora_final) > 23 or int(hora_final) < int(hora_inicial):
+        messagebox.showerror("Error", "Ingrese una hora final válida (entre 0 y 23, mayor o igual a la hora inicial).")
+        return
+    if not minutos_cita.isdigit() or int(minutos_cita) < 5 or int(minutos_cita) > 45:
+        messagebox.showerror("Error", "Ingrese una cantidad válida de minutos por cita (entre 5 y 45).")
+        return
+    if not dias_reinspeccion.isdigit() or int(dias_reinspeccion) < 1 or int(dias_reinspeccion) > 60:
+        messagebox.showerror("Error", "Ingrese una cantidad válida de días para reinspección (entre 1 y 60).")
+        return
+    if not fallas_graves.isdigit() or int(fallas_graves) <= 0:
+        messagebox.showerror("Error", "Ingrese una cantidad válida de fallas graves (mayor a 0).")
+        return
+    if not meses_citas.isdigit() or int(meses_citas) < 1 or int(meses_citas) > 12:
+        messagebox.showerror("Error", "Ingrese una cantidad válida de meses para desplegar citas (entre 1 y 12).")
+        return
+    try:
+        iva = float(iva)
+        if iva < 0 or iva > 20:
+            raise ValueError
+    except ValueError:
+        messagebox.showerror("Error", "Ingrese un valor válido de IVA (entre 0 y 20).")
+        return
+
+    configuracion['lineas_trabajo']=int(lineas_trabajo)
+    configuracion['hora_inicial']=int(hora_inicial)
+    configuracion['hora_final']=int(hora_final)
+    configuracion['minutos_cita']=int(minutos_cita)
+    configuracion['dias_reinspeccion']=int(dias_reinspeccion)
+    configuracion['fallas_graves']=int(fallas_graves) 
+    configuracion['meses_citas']=int(meses_citas) 
+    configuracion['iva']=float(iva) 
+
+    messagebox.showinfo("Configuración guardada", "La configuración del sistema ha sido guardada correctamente.")
+    print(configuracion)
 
 #Funcion para desplegar la informacion del programa
 
@@ -645,7 +828,7 @@ if True:
     boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_fallas=tk.Button(win, text='LISTA DE FALLAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
-    boton_configuracion=tk.Button(win, text='CONFIGURACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+    boton_configuracion=tk.Button(win, text='CONFIGURACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=configuracion_pt1)
     boton_ayuda=tk.Button(win, text='AYUDA', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_acerca=tk.Button(win, text='ACERCA DE', fg='white',bg = gris_claro,font ='Dubai 10 bold',command=acerca_de,border=0)
     boton_salir=tk.Button(win, text='SALIR', fg='white',bg = gris_claro,font ='Dubai 10 bold',command=lambda:(win.quit()),border=0)
@@ -749,16 +932,55 @@ if True:
 
     boton_seleccionar_fecha = tk.Button(win, text="Seleccionar",font='Dubai 20',bg=gris_oscuro,fg='white', command=seleccionar_fecha)
 
-# Agregar valores al ListBox
+#Widgets configuracion parte 1
 
+if True:
 
+    lineas_label = tk.Label(win, text="Cantidad de líneas de trabajo en la estación:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    lineas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    lineas_entry.insert(0,configuracion['lineas_trabajo'])
 
+    hora_inicial_label = tk.Label(win, text="Hora inicial:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    hora_inicial_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    hora_inicial_entry.insert(0,configuracion['hora_inicial'])
+    
+    hora_final_label = tk.Label(win, text="Hora final:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    hora_final_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    hora_final_entry.insert(0,configuracion['hora_final'])
+    
+    minutos_cita_label = tk.Label(win, text="Minutos por cada cita de revisión:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    minutos_cita_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    minutos_cita_entry.insert(0,configuracion['minutos_cita'])
+    
+    dias_reinspeccion_label = tk.Label(win, text="Cantidad máxima de días para reinspección:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    dias_reinspeccion_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    dias_reinspeccion_entry.insert(0,configuracion['dias_reinspeccion'])
+    
+    fallas_graves_label = tk.Label(win, text="Cantidad de fallas graves para sacar vehículo de circulación:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    fallas_graves_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    fallas_graves_entry.insert(0,configuracion['fallas_graves'])
+    
+    meses_citas_label = tk.Label(win, text="Cantidad de meses para desplegar citas:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    meses_citas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    meses_citas_entry.insert(0,configuracion['meses_citas'])
+
+    iva_label = tk.Label(win, text="% de Impuesto al Valor Agregado (IVA) sobre la tarifa:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    iva_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+    iva_entry.insert(0,configuracion['iva'])
+
+#Widgets configuracion parte 2
+
+if True:
+
+    tarifas_label = tk.Label(win, text="Tabla de Tarifas:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+
+    boton_aplicar = tk.Button(win, text="APLICAR", command=aplicar_configuracion, font='Dubai 12')
+    
 #Widgets que deben aparecer al inicio del programa
 
 label_inicio.place(relx=0.5,rely=0.3,anchor=centro)
 boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
 
-
-
 win.mainloop()
 
+#TODO: Funcion cancelar citas
