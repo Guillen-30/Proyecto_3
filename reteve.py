@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 import smtplib
 from email import encoders
+import dill
 
 #Colores
 
@@ -40,11 +41,11 @@ fechas_programables=[]
 
 fechas_programadas=[]
 
-#Lista de citas programadas, por efectos de eficiencia aun no esta implementado en arbol
+#Lista y arbol de citas programadas
 
 citas_programadas=[]
 
-arbol_citas=[]
+arbol_citas=None
 
 #Diccionario de configuracion y vehiculos y sus tarifas
 
@@ -58,15 +59,17 @@ configuracion={'lineas_trabajo':6,
 'iva':13.0}
 
 tabla_tarifas = {
-    "Automóvil Partícular y Vehículo de Carga Liviana (Menor o Igual a 3500kg)": 10920,
-    "Automóvil Partícular y Vehículo de Carga Liviana (Mayor a 3500kg pero menor a 8000kg)": 14380,
-    "Vehículo de Carga Pesada y Cabezales (Mayor o igual a 8000kg)": 14380,
+    "Automovil Particular y Vehiculo de Carga Liviana (Menor o Igual a 3500kg)": 10920,
+    "Automovil Particular y Vehiculo de Carga Liviana (Mayor a 3500kg pero menor a 8000kg)": 14380,
+    "Vehiculo de Carga Pesada y Cabezales (Mayor o igual a 8000kg)": 14380,
     "Taxis": 11785,
     "Autobuses, Buses y Microbuses": 14380,
     "Motocicletas": 7195,
     "Equipo Especial de Obras": 14380,
-    "Equipo Especial Agrícola": 6625
+    "Equipo Especial Agricola": 6625
 }
+
+
 
 tarifas_entries={}
 
@@ -75,9 +78,9 @@ tarifas_labels=[]
 #Lista de vehiculos disponibles para seleccionar
 
 lista_vehiculos = [
-    "Automóvil Partícular y Vehículo de Carga Liviana (Menor o Igual a 3500kg)",
-    "Automóvil Partícular y Vehículo de Carga Liviana (Mayor a 3500kg pero menor a 8000kg)",
-    "Vehículo de Carga Pesada y Cabezales (Mayor o igual a 8000kg)",
+    "Automovil Particular y Vehiculo de Carga Liviana (Menor o Igual a 3500kg)",
+    "Automovil Particular y Vehiculo de Carga Liviana (Mayor a 3500kg pero menor a 8000kg)",
+    "Vehiculo de Carga Pesada y Cabezales (Mayor o igual a 8000kg)",
     "Taxis",
     "Autobuses, Buses y Microbuses",
     "Motocicletas",
@@ -87,7 +90,9 @@ lista_vehiculos = [
 
 #Label Acerca De
 
-acerca_label = tk.Label(win, text='\nReteve\nVersion: 1.0\nFecha de Creacion: 19/06/2023\nAutor: Sebastián Guillén Guzmán',bg=gris_claro,fg='white')
+acerca_label = tk.Label(win, text='\nReteve\nVersion: 1.0\nFecha de Creacion: 19/06/2023\nAutor: Sebastian Guillen Guzman',bg=gris_claro,fg='white')
+
+
 
 def borrar_items():
 
@@ -194,9 +199,15 @@ def borrar_items():
 
     boton_aplicar.pack_forget()
 
+    numero_cita_cancelar_label.place_forget()
+    numero_cita_cancelar_entry.place_forget()
+    numero_placa_cancelar_label.place_forget()
+    numero_placa_cancelar_entry.place_forget()
+    cancelar_cita_boton.place_forget()
+
 def menu_principal():
     borrar_items()
-
+    leer_datos()
     boton_programar.place(relx=0.25,rely=0.25,anchor=centro)
     boton_cancelar.place(relx=0.50,rely=0.25,anchor=centro)
     boton_ingreso.place(relx=0.75,rely=0.25,anchor=centro)
@@ -225,12 +236,48 @@ class vehiculo:
         self.hora = hora
         self.estado = estado
     def __repr__(self) -> str:
-        return f'Vehiculo\nNumero Cita: {self.numero_cita}\nTipo de Cita: {self.tipo_cita}\nNumero de Placa: {self.numero_placa}\nTipo de Vehiculo: {self.tipo_vehiculo}\nMarca: {self.marca}\nModelo: {self.modelo}\nPropietario: {self.propietario}\nTelefono: {self.telefono}\nCorreo: {self.correo}\nDireccion: {self.direccion}\nFecha: {self.fecha}\nHora: {self.hora}\nEstado: {self.estado}'
+        return f'Vehiculo\nNumero Cita: {self.numero_cita} \nTipo de Cita: {self.tipo_cita} \nNumero de Placa: {self.numero_placa} \nTipo de Vehiculo: {self.tipo_vehiculo} \nMarca: {self.marca} \nModelo: {self.modelo} \nPropietario: {self.propietario} \nTelefono: {self.telefono} \nCorreo: {self.correo} \nDireccion: {self.direccion} \nFecha: {self.fecha} \nHora: {self.hora} \nEstado: {self.estado} '
 
+#Funcion para guardar los datos en un diccionario
+
+def guardar_datos():
+    datos={'contador_citas':contador_citas,
+           'fechas_programables':fechas_programables,
+           'fechas_programadas':fechas_programadas,
+           'citas_programadas':citas_programadas,
+           'arbol_citas':arbol_citas,
+           'configuracion':configuracion,
+           'tabla_tarifas':tabla_tarifas}
+    with open ('datos.dat','wb') as file:
+        dill.dump(datos,file)
+    print('Datos guardados')
+
+def leer_datos():
+    global contador_citas
+    global fechas_programables
+    global fechas_programadas
+    global citas_programadas
+    global arbol_citas
+    global configuracion
+    global tabla_tarifas
+    try:
+        with open ('datos.dat','rb') as file:
+            datos=dill.load(file)
+    except:
+        return
+    
+    contador_citas=datos['contador_citas']
+    fechas_programables=datos['fechas_programables']
+    fechas_programadas=datos['fechas_programadas']
+    citas_programadas=datos['citas_programadas']
+    arbol_citas=datos['arbol_citas']
+    configuracion=datos['configuracion']
+    tabla_tarifas=datos['tabla_tarifas']
+    
+leer_datos()
 #Funcion de programar citas
 
 def programar_citas():
-    numero_cita=obtener_numero_cita()
     paso_tipo_cita()
 
 #Funcion para obtener el numero de cita que se debe agregar
@@ -480,6 +527,8 @@ def paso_fecha_automatica():
     boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
 
 def paso_programar():
+    global datos, citas_programadas, arbol_citas
+    print(tipo_fecha)
     if tipo_fecha=='m':
         if year_entry.get()=='' or not year_entry.get().isdigit:
             year_entry.config(bg=rosado_error)
@@ -583,9 +632,11 @@ def paso_programar():
     print(cita)
     citas_programadas.append(cita)
     print(citas_programadas)
-    agregar_cita_abb(cita)
+    arbol_citas=agregar_cita_abb(cita,arbol_citas)
     enviar_email_cita(cita)
+    print(arbol_citas)
     messagebox.showinfo("Cita programada", "La cita ha sido programada correctamente, se ha enviado un comprobante a su direccion de correo electronico")
+    guardar_datos()
     menu_principal() 
 
 #Funcion para enviar el correo comprobante de cita
@@ -599,7 +650,10 @@ def enviar_email_cita(cita):
         msg['To'] = cita.correo
         msg['Subject'] = "Comprobante cita RETEVE"
 
-        texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora}'
+        if cita.tipo_cita==1:
+            texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora} para su vehiculo {cita.marca} {cita.modelo} de placa {cita.numero_placa}, su numero de cita es el {cita.numero_cita}, el tipo de cita es una cita por primera vez'
+        else:
+            texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora} para su vehiculo {cita.marca} {cita.modelo} de placa {cita.numero_placa}, su numero de cita es el {cita.numero_cita}, el tipo de cita es una cita por reinspeccion'
         msg.attach(MIMEText(texto, 'plain'))
         # create server 
         server = smtplib.SMTP('smtp.gmail.com: 587')
@@ -615,19 +669,24 @@ def enviar_email_cita(cita):
 
 #Funcion para agregar la cita al arbol
 
-def agregar_cita_abb(cita, nodo=None):
-    if nodo is None:
-        return {'cita': cita, 'izquierda': None, 'derecha': None}
-
-    fecha_hora_cita = datetime.strptime(cita.fecha + ' ' + cita.hora, '%Y-%m-%d %H:%M')
-    fecha_hora_nodo = datetime.strptime(nodo['cita'].fecha + ' ' + nodo['cita'].hora, '%Y-%m-%d %H:%M')
-
-    if fecha_hora_cita < fecha_hora_nodo:
-        nodo['izquierda'] = agregar_cita_abb(cita, nodo['izquierda'])
-    else:
-        nodo['derecha'] = agregar_cita_abb(cita, nodo['derecha'])
+def agregar_cita_abb(cita, arbol=None):
+    if arbol is None:
+        # Caso base: si el arbol es None, crea una nueva lista con la cita y las sublistas izquierda y derecha
+        return [cita, None, None]
     
-    return nodo
+    # Convierte las fechas y horas a objetos datetime para compararlas
+    fecha_hora_cita = datetime.datetime.strptime(cita.fecha + ' ' + cita.hora, '%Y-%m-%d %H:%M')
+    fecha_hora_nodo = datetime.datetime.strptime(arbol[0].fecha + ' ' + arbol[0].hora, '%Y-%m-%d %H:%M')
+    
+    # Compara la fecha y hora de la cita actual con la del nodo actual para determinar la ubicacion en el arbol
+    if fecha_hora_cita < fecha_hora_nodo:
+        # Si la fecha y hora de la cita es menor, se inserta en la sublista izquierda
+        arbol[1] = agregar_cita_abb(cita, arbol[1])
+    else:
+        # Si la fecha y hora de la cita es mayor o igual, se inserta en la sublista derecha
+        arbol[2] = agregar_cita_abb(cita, arbol[2])
+    
+    return arbol
 
 def generar_fechas_disponibles():
     print(configuracion['minutos_cita'])
@@ -747,15 +806,15 @@ def aplicar_configuracion():
     for vehiculo, entry in tarifas_entries.items():
         tabla_tarifas[vehiculo] = entry.get()
     
-    # Lógica adicional para guardar la configuración
+    # Logica adicional para guardar la configuracion
     
-    # Ejemplo de impresión de los valores obtenidos
-    print("Cantidad de líneas de trabajo:", lineas_trabajo)
+    # Ejemplo de impresion de los valores obtenidos
+    print("Cantidad de lineas de trabajo:", lineas_trabajo)
     print("Hora inicial:", hora_inicial)
     print("Hora final:", hora_final)
-    print("Minutos por cada cita de revisión:", minutos_cita)
-    print("Cantidad máxima de días para reinspección:", dias_reinspeccion)
-    print("Cantidad de fallas graves para sacar vehículo de circulación:", fallas_graves)
+    print("Minutos por cada cita de revision:", minutos_cita)
+    print("Cantidad maxima de dias para reinspeccion:", dias_reinspeccion)
+    print("Cantidad de fallas graves para sacar vehiculo de circulacion:", fallas_graves)
     print("Cantidad de meses para desplegar citas:", meses_citas)
     print("% de Impuesto al Valor Agregado (IVA) sobre la tarifa:", iva)
     print("Tabla de Tarifas:")
@@ -764,32 +823,32 @@ def aplicar_configuracion():
 
     # Validar los valores ingresados
     if not lineas_trabajo.isdigit() or int(lineas_trabajo) < 1 or int(lineas_trabajo) > 25:
-        messagebox.showerror("Error", "Ingrese una cantidad válida de líneas de trabajo (entre 1 y 25).")
+        messagebox.showerror("Error", "Ingrese una cantidad valida de lineas de trabajo (entre 1 y 25).")
         return
     if not hora_inicial.isdigit() or int(hora_inicial) < 0 or int(hora_inicial) > 23:
-        messagebox.showerror("Error", "Ingrese una hora inicial válida (entre 0 y 23).")
+        messagebox.showerror("Error", "Ingrese una hora inicial valida (entre 0 y 23).")
         return
     if not hora_final.isdigit() or int(hora_final) < 0 or int(hora_final) > 23 or int(hora_final) < int(hora_inicial):
-        messagebox.showerror("Error", "Ingrese una hora final válida (entre 0 y 23, mayor o igual a la hora inicial).")
+        messagebox.showerror("Error", "Ingrese una hora final valida (entre 0 y 23, mayor o igual a la hora inicial).")
         return
     if not minutos_cita.isdigit() or int(minutos_cita) < 5 or int(minutos_cita) > 45:
-        messagebox.showerror("Error", "Ingrese una cantidad válida de minutos por cita (entre 5 y 45).")
+        messagebox.showerror("Error", "Ingrese una cantidad valida de minutos por cita (entre 5 y 45).")
         return
     if not dias_reinspeccion.isdigit() or int(dias_reinspeccion) < 1 or int(dias_reinspeccion) > 60:
-        messagebox.showerror("Error", "Ingrese una cantidad válida de días para reinspección (entre 1 y 60).")
+        messagebox.showerror("Error", "Ingrese una cantidad valida de dias para reinspeccion (entre 1 y 60).")
         return
     if not fallas_graves.isdigit() or int(fallas_graves) <= 0:
-        messagebox.showerror("Error", "Ingrese una cantidad válida de fallas graves (mayor a 0).")
+        messagebox.showerror("Error", "Ingrese una cantidad valida de fallas graves (mayor a 0).")
         return
     if not meses_citas.isdigit() or int(meses_citas) < 1 or int(meses_citas) > 12:
-        messagebox.showerror("Error", "Ingrese una cantidad válida de meses para desplegar citas (entre 1 y 12).")
+        messagebox.showerror("Error", "Ingrese una cantidad valida de meses para desplegar citas (entre 1 y 12).")
         return
     try:
         iva = float(iva)
         if iva < 0 or iva > 20:
             raise ValueError
     except ValueError:
-        messagebox.showerror("Error", "Ingrese un valor válido de IVA (entre 0 y 20).")
+        messagebox.showerror("Error", "Ingrese un valor valido de IVA (entre 0 y 20).")
         return
 
     configuracion['lineas_trabajo']=int(lineas_trabajo)
@@ -801,8 +860,56 @@ def aplicar_configuracion():
     configuracion['meses_citas']=int(meses_citas) 
     configuracion['iva']=float(iva) 
 
-    messagebox.showinfo("Configuración guardada", "La configuración del sistema ha sido guardada correctamente.")
+    messagebox.showinfo("Configuracion guardada", "La configuracion del sistema ha sido guardada correctamente.")
     print(configuracion)
+    guardar_datos()
+
+#Funcion para cancelar citas
+
+def recorrer_inorden(arbol):
+    if arbol is not None:
+        recorrer_inorden(arbol[1])  # Recorre la sublista izquierda
+        print(arbol[0])  # Imprime el nodo actual
+        recorrer_inorden(arbol[2])  # Recorre la sublista derecha
+
+def cancelar_cita_gui():
+    recorrer_inorden(arbol_citas)
+    borrar_items()
+
+    numero_cita_cancelar_label.place(relx=0.5,rely=0.3,anchor=centro)
+    numero_cita_cancelar_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+    numero_placa_cancelar_label.place(relx=0.5,rely=0.5,anchor=centro)
+    numero_placa_cancelar_entry.place(relx=0.5,rely=0.6,anchor=centro)
+
+    cancelar_cita_boton.place(relx=0.5,rely=0.8,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def cancelar_cita(numero_cita, numero_placa, arbol):
+    global arbol_citas
+    if arbol==None:
+        return
+    cita_actual=arbol[0]
+    if cita_actual.numero_cita == int(numero_cita) and cita_actual.numero_placa == str(numero_placa):
+        if cita_actual.estado=='PENDIENTE':
+            ask=messagebox.askyesno('Cancelar Cita','Desea cancelar la cita ingresada?')
+            if ask:
+                messagebox.showinfo('Cancelar Cita','Cita Cancelada')
+                cita_actual.estado='CANCELADA'
+                guardar_datos()
+                return
+            else:
+                messagebox.showinfo('Cancelar Cita','No se ha cancelado la cita')
+                return
+        else:
+            messagebox.showerror('Error','El estado de esta cita ya es CANCELADA')
+    else:
+        cancelar_cita(numero_cita, numero_placa, arbol[1])
+        cancelar_cita(numero_cita, numero_placa, arbol[2])
+        
+
+
 
 #Funcion para desplegar la informacion del programa
 
@@ -824,7 +931,7 @@ if True:
     boton_menu=tk.Button(win, text='←', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,width=3,height=1,border=0)
 
     boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=programar_citas)
-    boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+    boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=cancelar_cita_gui)
     boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_fallas=tk.Button(win, text='LISTA DE FALLAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
@@ -936,7 +1043,7 @@ if True:
 
 if True:
 
-    lineas_label = tk.Label(win, text="Cantidad de líneas de trabajo en la estación:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    lineas_label = tk.Label(win, text="Cantidad de lineas de trabajo en la estacion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
     lineas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
     lineas_entry.insert(0,configuracion['lineas_trabajo'])
 
@@ -948,15 +1055,15 @@ if True:
     hora_final_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
     hora_final_entry.insert(0,configuracion['hora_final'])
     
-    minutos_cita_label = tk.Label(win, text="Minutos por cada cita de revisión:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    minutos_cita_label = tk.Label(win, text="Minutos por cada cita de revision:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
     minutos_cita_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
     minutos_cita_entry.insert(0,configuracion['minutos_cita'])
     
-    dias_reinspeccion_label = tk.Label(win, text="Cantidad máxima de días para reinspección:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    dias_reinspeccion_label = tk.Label(win, text="Cantidad maxima de dias para reinspeccion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
     dias_reinspeccion_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
     dias_reinspeccion_entry.insert(0,configuracion['dias_reinspeccion'])
     
-    fallas_graves_label = tk.Label(win, text="Cantidad de fallas graves para sacar vehículo de circulación:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+    fallas_graves_label = tk.Label(win, text="Cantidad de fallas graves para sacar vehiculo de circulacion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
     fallas_graves_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
     fallas_graves_entry.insert(0,configuracion['fallas_graves'])
     
@@ -976,11 +1083,30 @@ if True:
 
     boton_aplicar = tk.Button(win, text="APLICAR", command=aplicar_configuracion, font='Dubai 12')
     
+#Widgets cancelar cita
+
+if True:
+
+    #Numero de la cita
+
+    numero_cita_cancelar_var=tk.StringVar()
+    numero_cita_cancelar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el numero de la cita que desea cancelar',fg='white',bg =gris_claro)
+    numero_cita_cancelar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_cita_cancelar_var)
+
+    #Numero de placa
+
+    numero_placa_cancelar_var=tk.StringVar()
+    numero_placa_cancelar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la placa de la cita que desea cancelar',fg='white',bg =gris_claro)
+    numero_placa_cancelar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_placa_cancelar_var)
+
+    cancelar_cita_boton = tk.Button(win, text="Cancelar Cita", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: cancelar_cita(numero_cita_cancelar_entry.get(),numero_placa_cancelar_entry.get(),arbol_citas))
+
 #Widgets que deben aparecer al inicio del programa
 
 label_inicio.place(relx=0.5,rely=0.3,anchor=centro)
 boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
 
+
 win.mainloop()
 
-#TODO: Funcion cancelar citas
+#TODO: Revisar que la cita que se vaya a cancelar no este en la cola de revision
