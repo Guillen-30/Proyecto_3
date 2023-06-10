@@ -47,6 +47,10 @@ citas_programadas=[]
 
 arbol_citas=None
 
+#Colas de RETEVE
+
+lineas={}
+
 #Diccionario de configuracion y vehiculos y sus tarifas
 
 configuracion={'lineas_trabajo':6,
@@ -205,6 +209,16 @@ def borrar_items():
     numero_placa_cancelar_entry.place_forget()
     cancelar_cita_boton.place_forget()
 
+    numero_cita_ingresar_label.place_forget()
+    numero_cita_ingresar_entry.place_forget()
+
+    numero_placa_ingresar_label.place_forget()
+    numero_placa_ingresar_entry.place_forget()
+
+    ingresar_cita_boton.place_forget()
+
+    datos_ingresar_label.place_forget()
+
 def menu_principal():
     borrar_items()
     leer_datos()
@@ -247,7 +261,8 @@ def guardar_datos():
            'citas_programadas':citas_programadas,
            'arbol_citas':arbol_citas,
            'configuracion':configuracion,
-           'tabla_tarifas':tabla_tarifas}
+           'tabla_tarifas':tabla_tarifas,
+           'lineas':lineas}
     with open ('datos.dat','wb') as file:
         dill.dump(datos,file)
     print('Datos guardados')
@@ -260,6 +275,7 @@ def leer_datos():
     global arbol_citas
     global configuracion
     global tabla_tarifas
+    global lineas
     try:
         with open ('datos.dat','rb') as file:
             datos=dill.load(file)
@@ -273,6 +289,7 @@ def leer_datos():
     arbol_citas=datos['arbol_citas']
     configuracion=datos['configuracion']
     tabla_tarifas=datos['tabla_tarifas']
+    lineas=datos['lineas']
     
 leer_datos()
 #Funcion de programar citas
@@ -593,39 +610,46 @@ def paso_programar():
     else:
         fecha_hora_str,fecha_str,hora_str=seleccionar_fecha()
     print(fecha_hora_str,fecha_hora_str in fechas_programables)
-    for i in fechas_programables:
-        if i==fecha_hora_str:
-            fechas_programables.remove(i)
-            fechas_programadas.append(i)
+    if fecha_hora_str not in fechas_programables:
+        messagebox.showerror('Error','No se ha ingresado una fecha valida')
+        if tipo_fecha=='m':
+            paso_fecha_manual()
+        else:
+            paso_fecha_automatica()
+    else:
+        for i in fechas_programables:
+            if i==fecha_hora_str:
+                fechas_programables.remove(i)
+                fechas_programadas.append(i)
 
-    numero_cita = obtener_numero_cita()
-    tipo_cita = tipo_cita_var.get()
-    numero_placa = numero_placa_entry.get()
-    tipo_vehiculo = tipo_vehiculo_listbox.get('active')
-    marca = marca_vehiculo_entry.get()
-    modelo = modelo_vehiculo_entry.get()
-    propietario = propietario_entry.get()
-    telefono = telefono_entry.get()
-    correo = correo_entry.get()
-    direccion = direccion_entry.get()
-    fecha,hora=fecha_str,hora_str
-    estado = "PENDIENTE"
+        numero_cita = obtener_numero_cita()
+        tipo_cita = tipo_cita_var.get()
+        numero_placa = numero_placa_entry.get()
+        tipo_vehiculo = tipo_vehiculo_listbox.get('active')
+        marca = marca_vehiculo_entry.get()
+        modelo = modelo_vehiculo_entry.get()
+        propietario = propietario_entry.get()
+        telefono = telefono_entry.get()
+        correo = correo_entry.get()
+        direccion = direccion_entry.get()
+        fecha,hora=fecha_str,hora_str
+        estado = "PENDIENTE"
 
-    cita = vehiculo(numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado)
-    for i in citas_programadas:
-        if i.fecha == cita.fecha and i.numero_placa==cita.numero_placa:
-            if i.tipo_cita == cita.tipo_cita:
-                messagebox.showerror('Error','Error, no puede agendar una cita para el mismo vehiculo el mismo dia')
-                paso_fecha()
-            else:
-                if i.tipo_cita==0 and cita.tipo_cita==1:
-                    if int(i.hora[:2])>int(cita.hora):
-                        pass
-                    else:
-                        if int(i.hora[:2])==int(cita.hora[:2]):
-                            if int(i.hora[3:6])<=int(cita.hora[3:6]):
-                                messagebox.showerror('Error','Error, no puede agendar una cita de reinspeccion para el mismo vehiculo el mismo dia si la fecha y hora es anterior a la primera cita')
-                                paso_fecha()
+        cita = vehiculo(numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado)
+        for i in citas_programadas:
+            if i.fecha == cita.fecha and i.numero_placa==cita.numero_placa:
+                if i.tipo_cita == cita.tipo_cita:
+                    messagebox.showerror('Error','Error, no puede agendar una cita para el mismo vehiculo el mismo dia')
+                    paso_fecha()
+                else:
+                    if i.tipo_cita==0 and cita.tipo_cita==1:
+                        if int(i.hora[:2])>int(cita.hora):
+                            pass
+                        else:
+                            if int(i.hora[:2])==int(cita.hora[:2]):
+                                if int(i.hora[3:6])<=int(cita.hora[3:6]):
+                                    messagebox.showerror('Error','Error, no puede agendar una cita de reinspeccion para el mismo vehiculo el mismo dia si la fecha y hora es anterior a la primera cita')
+                                    paso_fecha()
 
     
 
@@ -650,7 +674,7 @@ def enviar_email_cita(cita):
         msg['To'] = cita.correo
         msg['Subject'] = "Comprobante cita RETEVE"
 
-        if cita.tipo_cita==1:
+        if cita.tipo_cita==0:
             texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora} para su vehiculo {cita.marca} {cita.modelo} de placa {cita.numero_placa}, su numero de cita es el {cita.numero_cita}, el tipo de cita es una cita por primera vez'
         else:
             texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora} para su vehiculo {cita.marca} {cita.modelo} de placa {cita.numero_placa}, su numero de cita es el {cita.numero_cita}, el tipo de cita es una cita por reinspeccion'
@@ -793,7 +817,7 @@ def configuracion_pt2():
     boton_paso_atras.place(relx=0.1,rely=0.95,anchor=centro)
 
 def aplicar_configuracion():
-    global tabla_tarifas, configuracion
+    global tabla_tarifas, configuracion,lineas
     lineas_trabajo = lineas_entry.get()
     hora_inicial = hora_inicial_entry.get()
     hora_final = hora_final_entry.get()
@@ -805,10 +829,7 @@ def aplicar_configuracion():
 
     for vehiculo, entry in tarifas_entries.items():
         tabla_tarifas[vehiculo] = entry.get()
-    
-    # Logica adicional para guardar la configuracion
-    
-    # Ejemplo de impresion de los valores obtenidos
+
     print("Cantidad de lineas de trabajo:", lineas_trabajo)
     print("Hora inicial:", hora_inicial)
     print("Hora final:", hora_final)
@@ -850,7 +871,25 @@ def aplicar_configuracion():
     except ValueError:
         messagebox.showerror("Error", "Ingrese un valor valido de IVA (entre 0 y 20).")
         return
-
+    print(lineas)
+    if int(lineas_trabajo)<configuracion['lineas_trabajo']:
+        vacia=True
+        for i in lineas:
+            print(lineas[i]['espera'] == [],lineas[i]['revision']=={'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None})
+            if lineas[i]['espera'] == [] and lineas[i]['revision']=={'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}:
+                vacia=True
+            else:
+                vacia=False
+        if vacia:
+            lineas={}
+            for i in range(int(lineas_trabajo)):
+                lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
+        else:
+            messagebox.showerror('Error','Solo puede disminuir la cantidad de lineas si la cola de espera y de revision esta vacia')
+    else:
+        for i in range(int(lineas_trabajo)):
+            lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
+    
     configuracion['lineas_trabajo']=int(lineas_trabajo)
     configuracion['hora_inicial']=int(hora_inicial)
     configuracion['hora_final']=int(hora_final)
@@ -859,18 +898,22 @@ def aplicar_configuracion():
     configuracion['fallas_graves']=int(fallas_graves) 
     configuracion['meses_citas']=int(meses_citas) 
     configuracion['iva']=float(iva) 
+    
+
 
     messagebox.showinfo("Configuracion guardada", "La configuracion del sistema ha sido guardada correctamente.")
     print(configuracion)
     guardar_datos()
 
-#Funcion para cancelar citas
+#Funcion para recorrer el arbol
 
 def recorrer_inorden(arbol):
     if arbol is not None:
         recorrer_inorden(arbol[1])  # Recorre la sublista izquierda
         print(arbol[0])  # Imprime el nodo actual
         recorrer_inorden(arbol[2])  # Recorre la sublista derecha
+
+#Funcion para cancelar citas
 
 def cancelar_cita_gui():
     recorrer_inorden(arbol_citas)
@@ -888,28 +931,125 @@ def cancelar_cita_gui():
 
 def cancelar_cita(numero_cita, numero_placa, arbol):
     global arbol_citas
-    if arbol==None:
-        return
-    cita_actual=arbol[0]
-    if cita_actual.numero_cita == int(numero_cita) and cita_actual.numero_placa == str(numero_placa):
-        if cita_actual.estado=='PENDIENTE':
-            ask=messagebox.askyesno('Cancelar Cita','Desea cancelar la cita ingresada?')
-            if ask:
-                messagebox.showinfo('Cancelar Cita','Cita Cancelada')
-                cita_actual.estado='CANCELADA'
-                guardar_datos()
-                return
-            else:
-                messagebox.showinfo('Cancelar Cita','No se ha cancelado la cita')
-                return
-        else:
-            messagebox.showerror('Error','El estado de esta cita ya es CANCELADA')
+    if numero_cita=='' or numero_placa=='' or len(numero_placa)>8 or (not numero_cita.isdigit()) or int(numero_cita)<=0:
+        messagebox.showerror('Error','Debe ingresar valores validos')
+        numero_cita_cancelar_entry.config(bg=rosado_error)
+        numero_placa_cancelar_entry.config(bg=rosado_error)
     else:
-        cancelar_cita(numero_cita, numero_placa, arbol[1])
-        cancelar_cita(numero_cita, numero_placa, arbol[2])
-        
+        if arbol==None:
+            return
+        cita_actual=arbol[0]
+        if cita_actual.numero_cita == int(numero_cita) and cita_actual.numero_placa == str(numero_placa):
+            if cita_actual.estado=='PENDIENTE':
+                for linea in lineas:
+                    for puesto in lineas[linea]['revision']:
+                        if lineas[linea]['revision'][puesto]==cita_actual:
+                            messagebox.showerror('Error','No se puede cancelar una cita que ya esta en el proceso de revision')
+                        else:
+                            ask=messagebox.askyesno('Cancelar Cita','Desea cancelar la cita ingresada?')
+                            if ask:
+                                messagebox.showinfo('Cancelar Cita','Cita Cancelada')
+                                cita_actual.estado='CANCELADA'
+                                guardar_datos()
+                                return
+                            else:
+                                messagebox.showinfo('Cancelar Cita','No se ha cancelado la cita')
+                                return
+            else:
+                messagebox.showerror('Error','El estado de esta cita ya es CANCELADA')
+        else:
+            if arbol[1]==None and arbol[2]==None:
+                messagebox.showerror('Error','No se ha encontrado su cita')
+            else:
+                cancelar_cita(numero_cita, numero_placa, arbol[1])
+                cancelar_cita(numero_cita, numero_placa, arbol[2])
+
+#Funcion para saber si una hora es mas de una hora mayor a otra
+
+def validar_fecha_ingreso(fecha_ingreso, hora_ingreso, fecha_cita, hora_cita):
+    formato_fecha = "%Y-%m-%d"
+    formato_hora = "%H:%M"
+    fecha_ingreso = datetime.datetime.strptime(fecha_ingreso, formato_fecha)
+    hora_ingreso = datetime.datetime.strptime(hora_ingreso, formato_hora)
+    fecha_cita = datetime.datetime.strptime(fecha_cita, formato_fecha)
+    hora_cita = datetime.datetime.strptime(hora_cita, formato_hora)
+
+    tiempo_anticipacion = datetime.timedelta(hours=1)
+    hora_minima_entrada = datetime.datetime.combine(fecha_cita, hora_cita.time()) - tiempo_anticipacion
+
+    if fecha_ingreso == fecha_cita and hora_ingreso <= hora_cita and hora_ingreso >= hora_minima_entrada:
+        return True
+    else:
+        return False
+
+#Funcion para ingresar a la estacion
+
+def linea_con_menos():
+    vehiculos_por_linea={}
+    for i in lineas:
+        vehiculos=0
+        if lineas[i]['espera']==[]:
+            pass
+        else:
+            for vehiculo in lineas[i]['espera']:
+                vehiculos+=1
+        for puesto in lineas[i]['revision']:
+            if lineas[i]['revision'][puesto]!=None:
+                vehiculos+=1
+        vehiculos_por_linea.update({i:vehiculos})
+    vehiculos_por_linea_s=dict(sorted(vehiculos_por_linea.items(), key=lambda item:item[1]))
+    return list(vehiculos_por_linea_s.keys())[0]
 
 
+def ingresar_cita_gui():
+    
+    borrar_items()
+
+    numero_cita_ingresar_label.place(relx=0.5,rely=0.3,anchor=centro)
+    numero_cita_ingresar_entry.place(relx=0.5,rely=0.4,anchor=centro)
+
+    numero_placa_ingresar_label.place(relx=0.5,rely=0.5,anchor=centro)
+    numero_placa_ingresar_entry.place(relx=0.5,rely=0.6,anchor=centro)
+
+    ingresar_cita_boton.place(relx=0.5,rely=0.8,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def ingresar_cita(numero_cita, numero_placa, arbol):
+    print(str(datetime.datetime.now())[:10])
+    print(str(datetime.datetime.now())[11:16])
+    global arbol_citas
+    if numero_cita=='' or numero_placa=='' or len(numero_placa)>8 or (not numero_cita.isdigit()) or int(numero_cita)<=0:
+        messagebox.showerror('Error','Debe ingresar valores validos')
+        numero_cita_ingresar_entry.config(bg=rosado_error)
+        numero_placa_ingresar_entry.config(bg=rosado_error)
+    else:
+        if arbol==None:
+            return
+        cita_actual=arbol[0]
+        if cita_actual.numero_cita == int(numero_cita) and cita_actual.numero_placa == str(numero_placa):
+            if cita_actual.estado=='PENDIENTE':
+                if False:#not validar_fecha_ingreso(str(datetime.datetime.now())[:10],str(datetime.datetime.now())[11:16],str(cita_actual.fecha),str(cita_actual.hora)):
+                    messagebox.showerror('Error','Unicamente puede ingresar el dia de su cita con un maximo de una hora de anticipacion')
+                else:
+                    borrar_items()
+                    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+                    tarifa=int(tabla_tarifas[cita_actual.tipo_vehiculo])
+                    iva=float(configuracion['iva'])
+                    texto=f'Marca: {cita_actual.marca}\nModelo: {cita_actual.modelo}\nPropietario: {cita_actual.propietario}\nCosto de la revision: {tarifa+(tarifa*iva/100)}'
+                    datos_ingresar_label.config(text=texto)
+                    datos_ingresar_label.place(relx=0.05,rely=0.1)
+                    lineas[linea_con_menos()]['espera'].append(cita_actual)
+                    for i in lineas:
+                        print(lineas[i])
+            else:
+                messagebox.showerror('Error','El estado de esta cita es CANCELADA')
+        else:
+            if arbol[1]==None and arbol[2]==None:
+                messagebox.showerror('Error','No se ha encontrado su cita')
+            else:
+                ingresar_cita(numero_cita, numero_placa, arbol[1])
+                ingresar_cita(numero_cita, numero_placa, arbol[2])
 
 #Funcion para desplegar la informacion del programa
 
@@ -932,7 +1072,7 @@ if True:
 
     boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=programar_citas)
     boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=cancelar_cita_gui)
-    boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+    boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=ingresar_cita_gui)
     boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_fallas=tk.Button(win, text='LISTA DE FALLAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
     boton_configuracion=tk.Button(win, text='CONFIGURACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=configuracion_pt1)
@@ -1101,6 +1241,29 @@ if True:
 
     cancelar_cita_boton = tk.Button(win, text="Cancelar Cita", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: cancelar_cita(numero_cita_cancelar_entry.get(),numero_placa_cancelar_entry.get(),arbol_citas))
 
+#Widgets ingreso de vehiculos a la estacion
+
+if True:
+
+    #Numero de la cita
+
+    numero_cita_ingresar_var=tk.StringVar()
+    numero_cita_ingresar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el numero de su cita',fg='white',bg =gris_claro)
+    numero_cita_ingresar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_cita_ingresar_var)
+
+    #Numero de placa
+
+    numero_placa_ingresar_var=tk.StringVar()
+    numero_placa_ingresar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la placa del vehiculo de su cita',fg='white',bg =gris_claro)
+    numero_placa_ingresar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_placa_ingresar_var)
+
+    ingresar_cita_boton = tk.Button(win, text="Ingresar a la estacion", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: ingresar_cita(numero_cita_ingresar_entry.get(),numero_placa_ingresar_entry.get(),arbol_citas))
+
+    datos_ingresar_label=tk.Label(win, font ='Dubai 20', text = '',fg='white',bg =gris_claro,justify='left')
+
+for i in range(int(configuracion['lineas_trabajo'])):
+    lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
+
 #Widgets que deben aparecer al inicio del programa
 
 label_inicio.place(relx=0.5,rely=0.3,anchor=centro)
@@ -1109,4 +1272,10 @@ boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
 
 win.mainloop()
 
-#TODO: Revisar que la cita que se vaya a cancelar no este en la cola de revision
+#TODO: Version 6.0 Tablero de revision
+    #*: Revisar que la cita que se vaya a cancelar no este en la cola de revision
+        #TODO: Revisar que esta parte ↑ sirva
+        
+#TODO: Version 7.0 Lista de fallas
+
+#! QUITAR IF FALSE DE INGRESAR CITAS, PUESTO PARA PODER PROBAR CON CUALQUIER CITA SIN PREOCUPARSE POR QUE LA FECHA ESTE EN EL MISMO DIA
