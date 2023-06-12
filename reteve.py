@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 import datetime
 from validate_email_address import validate_email
 from reportlab.lib.pagesizes import letter
@@ -50,6 +51,10 @@ arbol_citas=None
 #Colas de RETEVE
 
 lineas={}
+
+#Diccionario de fallas
+
+fallas={}
 
 #Diccionario de configuracion y vehiculos y sus tarifas
 
@@ -219,6 +224,46 @@ def borrar_items():
 
     datos_ingresar_label.place_forget()
 
+    lista_fallas_label.place_forget()
+    agregar_falla_menu_boton.place_forget()
+    consultar_falla_menu_boton.place_forget()
+    modificar_falla_menu_boton.place_forget()
+    elminar_falla_menu_boton.place_forget()
+
+    agregar_falla_label.place_forget()
+    numero_agregar_falla_label.place_forget()
+    descripcion_agregar_falla_label.place_forget()
+    numero_agregar_falla_entry.place_forget()
+    descripcion_agregar_falla_entry.place_forget()
+    tipo_falla_agregar_label.place_forget()
+    tipo_falla_agregar_combobox.place_forget()
+    agregar_falla_boton.place_forget()
+
+    consultar_falla_label.place_forget()
+    numero_consultar_falla_label.place_forget()
+    numero_consultar_falla_entry.place_forget()
+    datos_consultar_falla_label.place_forget()
+    datos_consultar_falla_label.config(state='normal')
+    datos_consultar_falla_label.delete('1.0', tk.END)
+    consultar_falla_boton.place_forget()
+
+    modificar_falla_label.place_forget()
+    numero_modificar_falla_label.place_forget()
+    descripcion_modificar_falla_label.place_forget()
+    numero_modificar_falla_entry.place_forget()
+    descripcion_modificar_falla_entry.place_forget()
+    modificar_falla_boton.place_forget()
+    tipo_falla_modificar_label.place_forget()
+    tipo_falla_modificar_combobox.place_forget()
+    aceptar_modificar_boton.place_forget()
+    descripcion_modificar_falla_entry.delete('0.0',tk.END)
+
+    eliminar_falla_label.place_forget()
+    numero_eliminar_falla_label.place_forget()
+    numero_eliminar_falla_entry.place_forget()
+    eliminar_falla_boton.place_forget()
+
+
 def menu_principal():
     borrar_items()
     leer_datos()
@@ -235,7 +280,7 @@ def menu_principal():
 #Clase de vehiculo
 
 class vehiculo:
-    def __init__(self, numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado):
+    def __init__(self, numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado, fallas):
         self.numero_cita = numero_cita
         self.tipo_cita = tipo_cita
         self.numero_placa = numero_placa
@@ -249,8 +294,9 @@ class vehiculo:
         self.fecha= fecha
         self.hora = hora
         self.estado = estado
+        self.fallas = fallas
     def __repr__(self) -> str:
-        return f'Vehiculo\nNumero Cita: {self.numero_cita} \nTipo de Cita: {self.tipo_cita} \nNumero de Placa: {self.numero_placa} \nTipo de Vehiculo: {self.tipo_vehiculo} \nMarca: {self.marca} \nModelo: {self.modelo} \nPropietario: {self.propietario} \nTelefono: {self.telefono} \nCorreo: {self.correo} \nDireccion: {self.direccion} \nFecha: {self.fecha} \nHora: {self.hora} \nEstado: {self.estado} '
+        return f'Vehiculo\nNumero Cita: {self.numero_cita} \nTipo de Cita: {self.tipo_cita} \nNumero de Placa: {self.numero_placa} \nTipo de Vehiculo: {self.tipo_vehiculo} \nMarca: {self.marca} \nModelo: {self.modelo} \nPropietario: {self.propietario} \nTelefono: {self.telefono} \nCorreo: {self.correo} \nDireccion: {self.direccion} \nFecha: {self.fecha} \nHora: {self.hora} \nEstado: {self.estado} \n Fallas: {self.fallas}'
 
 #Funcion para guardar los datos en un diccionario
 
@@ -262,7 +308,8 @@ def guardar_datos():
            'arbol_citas':arbol_citas,
            'configuracion':configuracion,
            'tabla_tarifas':tabla_tarifas,
-           'lineas':lineas}
+           'lineas':lineas,
+           'fallas':fallas}
     with open ('datos.dat','wb') as file:
         dill.dump(datos,file)
     print('Datos guardados')
@@ -276,6 +323,7 @@ def leer_datos():
     global configuracion
     global tabla_tarifas
     global lineas
+    global fallas
     try:
         with open ('datos.dat','rb') as file:
             datos=dill.load(file)
@@ -290,6 +338,7 @@ def leer_datos():
     configuracion=datos['configuracion']
     tabla_tarifas=datos['tabla_tarifas']
     lineas=datos['lineas']
+    fallas=datos['fallas']
     
 leer_datos()
 #Funcion de programar citas
@@ -1000,7 +1049,6 @@ def linea_con_menos():
     vehiculos_por_linea_s=dict(sorted(vehiculos_por_linea.items(), key=lambda item:item[1]))
     return list(vehiculos_por_linea_s.keys())[0]
 
-
 def ingresar_cita_gui():
     
     borrar_items()
@@ -1051,6 +1099,183 @@ def ingresar_cita(numero_cita, numero_placa, arbol):
                 ingresar_cita(numero_cita, numero_placa, arbol[1])
                 ingresar_cita(numero_cita, numero_placa, arbol[2])
 
+#Lista de fallas
+
+def menu_lista_fallas():
+    borrar_items()
+
+    lista_fallas_label.place(relx=0.5,rely=0.2,anchor=centro)
+    agregar_falla_menu_boton.place(relx=0.30,rely=0.40,anchor=centro)
+    consultar_falla_menu_boton.place(relx=0.70,rely=0.40,anchor=centro)
+    modificar_falla_menu_boton.place(relx=0.30,rely=0.60,anchor=centro)
+    elminar_falla_menu_boton.place(relx=0.70,rely=0.60,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def agregar_falla_aux():
+    if (not numero_agregar_falla_entry.get().isdigit()) or int(numero_agregar_falla_entry.get()) not in range(1,9999):
+        numero_agregar_falla_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Debe ingresar un numero entero entre 1 y 9999')
+        agregar_falla()
+        return
+    elif len(descripcion_agregar_falla_entry.get("1.0", "end-1c"))not in range(5,200):
+        descripcion_agregar_falla_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Debe ingresar una descripcion con una longitud de entre 5 y 200 caracteres')
+        agregar_falla()
+        return
+    elif tipo_falla_agregar_combobox.get()=='':
+        messagebox.showerror('Error','Debe seleccionar un tipo de falla')
+        agregar_falla()
+        return
+    else:
+        for falla in fallas:
+            if int(falla)==numero_agregar_falla_entry.get():    
+                numero_agregar_falla_entry.config(bg=rosado_error)
+                messagebox.showerror('Error','La falla con ese numero ya existe, para modificarla vaya a la opcion de modificar falla')
+                agregar_falla()
+                return
+            else:
+                break
+    fallas.update({int(numero_agregar_falla_entry.get()):(descripcion_agregar_falla_entry.get("1.0", "end-1c"),tipo_falla_agregar_combobox.get())})
+    messagebox.showinfo('Agregar Fallas','Falla agregada exitosamente')
+    print(fallas)
+    guardar_datos()
+    
+
+def agregar_falla():
+    borrar_items()
+
+    agregar_falla_label.place(relx=0.5,rely=0.1,anchor=centro)
+
+    numero_agregar_falla_label.place(relx=0.5,rely=0.2,anchor=centro)
+    descripcion_agregar_falla_label.place(relx=0.5,rely=0.4,anchor=centro)
+
+    numero_agregar_falla_entry.place(relx=0.5,rely=0.3,anchor=centro)
+    descripcion_agregar_falla_entry.place(relx=0.5,rely=0.55,anchor=centro)
+
+    tipo_falla_agregar_label.place(relx=0.5,rely=0.70,anchor=centro)
+    tipo_falla_agregar_combobox.place(relx=0.5,rely=0.75,anchor=centro)
+
+    agregar_falla_boton.place(relx=0.5,rely=0.85,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def consultar_falla_aux():
+    print(numero_consultar_falla_entry.get())
+    valida=False
+    for i in fallas:
+        if str(i) == numero_consultar_falla_entry.get():
+            valida=True
+            numero=int(i)
+            descripcion=fallas[i][0]
+            tipo=fallas[i][1]
+    if valida==False:
+        messagebox.showerror("Error",'Falla no existe o no es valida')
+        consultar_falla()   
+        return
+    borrar_items()
+    consultar_falla_label.place(relx=0.5,rely=0.1,anchor=centro)
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+    texto=f'Numero de falla: {numero}\nDescripcion de la falla: {descripcion}\nTipo de falla: {tipo}'
+    datos_consultar_falla_label.delete('1.0', tk.END)
+    datos_consultar_falla_label.insert(tk.END,texto)
+    datos_consultar_falla_label.place(relx=0.05,rely=0.15)
+    datos_consultar_falla_label.config(state='disabled')
+    
+
+def consultar_falla():
+    borrar_items()
+
+    consultar_falla_label.place(relx=0.5,rely=0.1,anchor=centro)
+    numero_consultar_falla_label.place(relx=0.5,rely=0.3,anchor=centro)
+
+    numero_consultar_falla_entry.place(relx=0.5,rely=0.3,anchor=centro)
+    consultar_falla_boton.place(relx=0.5,rely=0.5,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def modificar_falla_aux_2():
+    if len(descripcion_modificar_falla_entry.get("1.0", "end-1c"))not in range(5,200):
+        descripcion_modificar_falla_entry.config(bg=rosado_error)
+        messagebox.showerror('Error','Debe ingresar una descripcion con una longitud de entre 5 y 200 caracteres')
+        modificar_falla()
+        return
+    elif tipo_falla_modificar_combobox.get()=='':
+        messagebox.showerror('Error','Debe seleccionar un tipo de falla')
+        modificar_falla()
+        return
+    else:
+        fallas.update({int(numero_modificar_falla_entry.get()):(descripcion_modificar_falla_entry.get("1.0", "end-1c"),tipo_falla_modificar_combobox.get())})
+        messagebox.showinfo('Agregar Fallas','Falla modificada exitosamente')
+        print(fallas)
+        guardar_datos()
+
+def modificar_falla_aux():
+    valida=False
+    falla=None
+    for i in fallas:
+        if str(i)==numero_modificar_falla_entry.get():
+            valida=True
+            falla=i
+    if valida==False:
+        messagebox.showerror('Error','Esa falla no existe o no es valida')
+    else:
+        borrar_items()
+
+        descripcion_modificar_falla_entry.place(relx=0.5,rely=0.45,anchor=centro)
+        descripcion_modificar_falla_label.place(relx=0.5,rely=0.3,anchor=centro)
+        descripcion_modificar_falla_entry.insert('0.0',fallas[falla][0])
+
+        tipo_falla_modificar_label.place(relx=0.5,rely=0.6,anchor=centro)
+        tipo_falla_modificar_combobox.place(relx=0.5,rely=0.65,anchor=centro)
+        tipo_falla_modificar_combobox.current(0 if fallas[falla][1]=='Leve' else 1)
+        aceptar_modificar_boton.place(relx=0.5,rely=0.85,anchor=centro)
+        boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def modificar_falla():
+    borrar_items()
+
+    modificar_falla_label.place(relx=0.5,rely=0.1,anchor=centro)
+
+    numero_modificar_falla_label.place(relx=0.5,rely=0.2,anchor=centro)
+
+    numero_modificar_falla_entry.place(relx=0.5,rely=0.3,anchor=centro)
+
+
+    modificar_falla_boton.place(relx=0.5,rely=0.85,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+def eliminar_falla_aux():
+    valida=False
+    for i in fallas:
+        if str(i) == numero_eliminar_falla_entry.get():
+            valida=True
+            falla=i
+    if valida==False:
+        messagebox.showerror("Error",'Falla no existe o no es valida')
+        eliminar_falla()   
+        return
+    else:
+        ask=messagebox.askyesno('Eliminar Falla','Esta seguro de que desea eliminar la falla ingresada?')
+        if ask:
+            del fallas[falla]
+            messagebox.showinfo('Eliminar Falla','Se ha eliminado la falla correctamente')
+        else:
+            messagebox.showinfo('Eliminar Falla','No se ha eliminado la falla')
+    guardar_datos()
+
+def eliminar_falla():
+    borrar_items()
+
+    eliminar_falla_label.place(relx=0.5,rely=0.1,anchor=centro)
+    numero_eliminar_falla_label.place(relx=0.5,rely=0.3,anchor=centro)
+
+    numero_eliminar_falla_entry.place(relx=0.5,rely=0.3,anchor=centro)
+    eliminar_falla_boton.place(relx=0.5,rely=0.5,anchor=centro)
+
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
 #Funcion para desplegar la informacion del programa
 
 def acerca_de():
@@ -1059,207 +1284,271 @@ def acerca_de():
     boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
     acerca_label.place(relx=0.5,rely=0.4, anchor=centro)
 
-#Boton y label inicio
-
-if True:
-    label_inicio=tk.Label(win,text='RETEVE',fg='white',bg=gris_claro,font='Dubai 100 underline')
-    boton_inicio=tk.Button(win, text='ENTRAR AL SISTEMA', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=menu_principal)
-
-#Botones menu principal
-
-if True:
-    boton_menu=tk.Button(win, text='←', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,width=3,height=1,border=0)
-
-    boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=programar_citas)
-    boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=cancelar_cita_gui)
-    boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=ingresar_cita_gui)
-    boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
-    boton_fallas=tk.Button(win, text='LISTA DE FALLAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
-    boton_configuracion=tk.Button(win, text='CONFIGURACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=configuracion_pt1)
-    boton_ayuda=tk.Button(win, text='AYUDA', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
-    boton_acerca=tk.Button(win, text='ACERCA DE', fg='white',bg = gris_claro,font ='Dubai 10 bold',command=acerca_de,border=0)
-    boton_salir=tk.Button(win, text='SALIR', fg='white',bg = gris_claro,font ='Dubai 10 bold',command=lambda:(win.quit()),border=0)
-
-#Widgets programar citas
+#Widgets
 
 if True:
 
-    #Paso atras y paso adelante
+    #Boton y label inicio
 
-    boton_paso_atras=tk.Button(win, text='← ANTERIOR', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,border=0)
-    boton_paso_adelante=tk.Button(win, text='SIGUIENTE →', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,border=0)
+    if True:
+        label_inicio=tk.Label(win,text='RETEVE',fg='white',bg=gris_claro,font='Dubai 100 underline')
+        boton_inicio=tk.Button(win, text='ENTRAR AL SISTEMA', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=menu_principal)
 
-    #Tipo de cita
+    #Botones menu principal
 
-    tipo_cita_var=tk.IntVar()
-    tipo_cita_label=tk.Label(win, font ='Dubai 20', text = 'Indique el tipo de cita',fg='white',bg =gris_claro)
-    tipo_cita_primera=tk.Checkbutton(win,font='Dubai 20', text='Primera Cita', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=0)
-    tipo_cita_reinspeccion=tk.Checkbutton(win,font='Dubai 20', text='Reinspeccion', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=1)
+    if True:
+        boton_menu=tk.Button(win, text='Menu\n←', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,width=3,height=1,border=0)
 
-    #Numero de placa
+        boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=programar_citas)
+        boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=cancelar_cita_gui)
+        boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=ingresar_cita_gui)
+        boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+        boton_fallas=tk.Button(win, text='LISTA DE FALLAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=menu_lista_fallas)
+        boton_configuracion=tk.Button(win, text='CONFIGURACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=configuracion_pt1)
+        boton_ayuda=tk.Button(win, text='AYUDA', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+        boton_acerca=tk.Button(win, text='ACERCA DE', fg='white',bg = gris_claro,font ='Dubai 10 bold',command=acerca_de,border=0)
+        boton_salir=tk.Button(win, text='SALIR', fg='white',bg = gris_claro,font ='Dubai 10 bold',command=lambda:(win.quit()),border=0)
 
-    numero_placa_var=tk.StringVar()
-    ingrese_placa_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese su numero de placa',fg='white',bg =gris_claro)
-    numero_placa_entry=tk.Entry(win,width=8,font='Dubai 20',bg='white',fg='black',textvariable=numero_placa_var)
+    #Widgets programar citas
 
-    #Tipo de vehiculo
+    if True:
 
-    tipo_vehiculo_var=tk.StringVar()
-    tipo_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Seleccione su tipo de vehiculo',fg='white',bg =gris_claro)
-    tipo_vehiculo_listbox=tk.Listbox(win, height=8,width=67,bg=gris_oscuro,fg='white',font='Dubai 15',border=0,borderwidth=0,listvariable=tipo_vehiculo_var)
-    tipo_vehiculo_listbox.insert(0, *lista_vehiculos)
+        #Paso atras y paso adelante
 
-    #Marca del vehiculo
+        boton_paso_atras=tk.Button(win, text='← ANTERIOR', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,border=0)
+        boton_paso_adelante=tk.Button(win, text='SIGUIENTE →', fg='white',bg = gris_claro,font ='Dubai 8 bold',command=menu_principal,border=0)
 
-    marca_vehiculo_var=tk.StringVar()
-    marca_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la marca de su vehiculo',fg='white',bg =gris_claro)
-    marca_vehiculo_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=marca_vehiculo_var)
+        #Tipo de cita
 
-    #Modelo del vehiculo
+        tipo_cita_var=tk.IntVar()
+        tipo_cita_label=tk.Label(win, font ='Dubai 20', text = 'Indique el tipo de cita',fg='white',bg =gris_claro)
+        tipo_cita_primera=tk.Checkbutton(win,font='Dubai 20', text='Primera Cita', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=0)
+        tipo_cita_reinspeccion=tk.Checkbutton(win,font='Dubai 20', text='Reinspeccion', variable=tipo_cita_var,bg=gris_claro,fg='white',selectcolor=gris_oscuro,onvalue=1)
 
-    modelo_vehiculo_var=tk.StringVar()
-    modelo_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el modelo de su vehiculo',fg='white',bg =gris_claro)
-    modelo_vehiculo_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=modelo_vehiculo_var)
+        #Numero de placa
 
-    #Propietario del vehiculo
+        numero_placa_var=tk.StringVar()
+        ingrese_placa_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese su numero de placa',fg='white',bg =gris_claro)
+        numero_placa_entry=tk.Entry(win,width=8,font='Dubai 20',bg='white',fg='black',textvariable=numero_placa_var)
 
-    propietario_var=tk.StringVar()
-    propietario_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el nombre del propietario del vehiculo',fg='white',bg =gris_claro)
-    propietario_entry=tk.Entry(win,width=40,bg='white',fg='black',font='Dubai 20',textvariable=propietario_var)
+        #Tipo de vehiculo
 
-    #Telefono del propietario del vehiculo
+        tipo_vehiculo_var=tk.StringVar()
+        tipo_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Seleccione su tipo de vehiculo',fg='white',bg =gris_claro)
+        tipo_vehiculo_listbox=tk.Listbox(win, height=8,width=67,bg=gris_oscuro,fg='white',font='Dubai 15',border=0,borderwidth=0,listvariable=tipo_vehiculo_var)
+        tipo_vehiculo_listbox.insert(0, *lista_vehiculos)
 
-    telefono_var=tk.StringVar()
-    telefono_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el telefono del propietario del vehiculo',fg='white',bg =gris_claro)
-    telefono_entry=tk.Entry(win,width=20,bg='white',font='Dubai 20',fg='black',textvariable=telefono_var)
+        #Marca del vehiculo
 
-    #Correo electronico del propietario del vehiculo
+        marca_vehiculo_var=tk.StringVar()
+        marca_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la marca de su vehiculo',fg='white',bg =gris_claro)
+        marca_vehiculo_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=marca_vehiculo_var)
 
-    correo_var=tk.StringVar()
-    correo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el correo del propietario del vehiculo',fg='white',bg =gris_claro)
-    correo_entry=tk.Entry(win,width=25,bg='white',font='Dubai 20',fg='black',textvariable=correo_var)
+        #Modelo del vehiculo
 
-    #Direccion del propietario del vehiculo
+        modelo_vehiculo_var=tk.StringVar()
+        modelo_vehiculo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el modelo de su vehiculo',fg='white',bg =gris_claro)
+        modelo_vehiculo_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=modelo_vehiculo_var)
 
-    direccion_var=tk.StringVar()
-    direccion_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la direccion del propietario del vehiculo',fg='white',bg =gris_claro)
-    direccion_entry=tk.Entry(win,width=40,bg='white',font='Dubai 20',fg='black',textvariable=direccion_var)
+        #Propietario del vehiculo
 
-    #Fecha y hora de la cita
+        propietario_var=tk.StringVar()
+        propietario_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el nombre del propietario del vehiculo',fg='white',bg =gris_claro)
+        propietario_entry=tk.Entry(win,width=40,bg='white',fg='black',font='Dubai 20',textvariable=propietario_var)
+
+        #Telefono del propietario del vehiculo
+
+        telefono_var=tk.StringVar()
+        telefono_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el telefono del propietario del vehiculo',fg='white',bg =gris_claro)
+        telefono_entry=tk.Entry(win,width=20,bg='white',font='Dubai 20',fg='black',textvariable=telefono_var)
+
+        #Correo electronico del propietario del vehiculo
+
+        correo_var=tk.StringVar()
+        correo_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el correo del propietario del vehiculo',fg='white',bg =gris_claro)
+        correo_entry=tk.Entry(win,width=25,bg='white',font='Dubai 20',fg='black',textvariable=correo_var)
+
+        #Direccion del propietario del vehiculo
+
+        direccion_var=tk.StringVar()
+        direccion_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la direccion del propietario del vehiculo',fg='white',bg =gris_claro)
+        direccion_entry=tk.Entry(win,width=40,bg='white',font='Dubai 20',fg='black',textvariable=direccion_var)
+
+        #Fecha y hora de la cita
 
 
-    year_var=tk.StringVar()
-    mes_var=tk.StringVar()
-    dia_var=tk.StringVar()
+        year_var=tk.StringVar()
+        mes_var=tk.StringVar()
+        dia_var=tk.StringVar()
 
-    hora_var=tk.StringVar()
-    minuto_var=tk.StringVar()
+        hora_var=tk.StringVar()
+        minuto_var=tk.StringVar()
 
-    tipo_fecha_label=tk.Label(win, font ='Dubai 20', text = 'Como desea ingresar la fecha de su cita?',fg='white',bg =gris_claro)
-    boton_fecha_manual=tk.Button(win, text='MANUALMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=paso_fecha_manual)
-    boton_fecha_automatica=tk.Button(win, text='AUTOMATICAMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=paso_fecha_automatica)
+        tipo_fecha_label=tk.Label(win, font ='Dubai 20', text = 'Como desea ingresar la fecha de su cita?',fg='white',bg =gris_claro)
+        boton_fecha_manual=tk.Button(win, text='MANUALMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=paso_fecha_manual)
+        boton_fecha_automatica=tk.Button(win, text='AUTOMATICAMENTE', fg='white',bg = gris_oscuro,font ='Dubai 10 bold',command=paso_fecha_automatica)
 
-        ##Si la fecha es manual
+            ##Si la fecha es manual
 
-    amd_label=tk.Label(win, font ='Dubai 20', text = 'Año/Mes/Dia',fg='white',bg =gris_claro)
+        amd_label=tk.Label(win, font ='Dubai 20', text = 'Año/Mes/Dia',fg='white',bg =gris_claro)
 
-    year_entry=tk.Entry(win,width=4,bg='white',fg='black',font='Dubai 20',textvariable=year_var)
-    mes_entry=tk.Entry(win,width=2,bg='white',fg='black',font='Dubai 20',textvariable=mes_var)
-    dia_entry=tk.Entry(win,width=2,bg='white',fg='black',font='Dubai 20',textvariable=dia_var)
+        year_entry=tk.Entry(win,width=4,bg='white',fg='black',font='Dubai 20',textvariable=year_var)
+        mes_entry=tk.Entry(win,width=2,bg='white',fg='black',font='Dubai 20',textvariable=mes_var)
+        dia_entry=tk.Entry(win,width=2,bg='white',fg='black',font='Dubai 20',textvariable=dia_var)
 
-    hm_label=tk.Label(win, font ='Dubai 20', text = 'Horas/Minutos',fg='white',bg=gris_claro)
-    hora_entry=tk.Entry(win,width=2,bg='white',font='Dubai 20',fg='black',textvariable=hora_var)
-    minuto_entry=tk.Entry(win,width=2,bg='white',font='Dubai 20',fg='black',textvariable=minuto_var)
+        hm_label=tk.Label(win, font ='Dubai 20', text = 'Horas/Minutos',fg='white',bg=gris_claro)
+        hora_entry=tk.Entry(win,width=2,bg='white',font='Dubai 20',fg='black',textvariable=hora_var)
+        minuto_entry=tk.Entry(win,width=2,bg='white',font='Dubai 20',fg='black',textvariable=minuto_var)
 
-        ##Si la fecha es automatica
-    
-    scrollbar_fechas = tk.Scrollbar(win)
-    listbox_fechas = tk.Listbox(win,font='Dubai 10', yscrollcommand=scrollbar_fechas.set)
-    scrollbar_fechas.config(command=listbox_fechas.yview)
+            ##Si la fecha es automatica
+        
+        scrollbar_fechas = tk.Scrollbar(win)
+        listbox_fechas = tk.Listbox(win,font='Dubai 10', yscrollcommand=scrollbar_fechas.set)
+        scrollbar_fechas.config(command=listbox_fechas.yview)
 
-    boton_seleccionar_fecha = tk.Button(win, text="Seleccionar",font='Dubai 20',bg=gris_oscuro,fg='white', command=seleccionar_fecha)
+        boton_seleccionar_fecha = tk.Button(win, text="Seleccionar",font='Dubai 20',bg=gris_oscuro,fg='white', command=seleccionar_fecha)
 
-#Widgets configuracion parte 1
+    #Widgets configuracion parte 1
 
-if True:
+    if True:
 
-    lineas_label = tk.Label(win, text="Cantidad de lineas de trabajo en la estacion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    lineas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    lineas_entry.insert(0,configuracion['lineas_trabajo'])
+        lineas_label = tk.Label(win, text="Cantidad de lineas de trabajo en la estacion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        lineas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        lineas_entry.insert(0,configuracion['lineas_trabajo'])
 
-    hora_inicial_label = tk.Label(win, text="Hora inicial:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    hora_inicial_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    hora_inicial_entry.insert(0,configuracion['hora_inicial'])
-    
-    hora_final_label = tk.Label(win, text="Hora final:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    hora_final_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    hora_final_entry.insert(0,configuracion['hora_final'])
-    
-    minutos_cita_label = tk.Label(win, text="Minutos por cada cita de revision:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    minutos_cita_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    minutos_cita_entry.insert(0,configuracion['minutos_cita'])
-    
-    dias_reinspeccion_label = tk.Label(win, text="Cantidad maxima de dias para reinspeccion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    dias_reinspeccion_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    dias_reinspeccion_entry.insert(0,configuracion['dias_reinspeccion'])
-    
-    fallas_graves_label = tk.Label(win, text="Cantidad de fallas graves para sacar vehiculo de circulacion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    fallas_graves_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    fallas_graves_entry.insert(0,configuracion['fallas_graves'])
-    
-    meses_citas_label = tk.Label(win, text="Cantidad de meses para desplegar citas:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    meses_citas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    meses_citas_entry.insert(0,configuracion['meses_citas'])
+        hora_inicial_label = tk.Label(win, text="Hora inicial:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        hora_inicial_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        hora_inicial_entry.insert(0,configuracion['hora_inicial'])
+        
+        hora_final_label = tk.Label(win, text="Hora final:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        hora_final_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        hora_final_entry.insert(0,configuracion['hora_final'])
+        
+        minutos_cita_label = tk.Label(win, text="Minutos por cada cita de revision:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        minutos_cita_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        minutos_cita_entry.insert(0,configuracion['minutos_cita'])
+        
+        dias_reinspeccion_label = tk.Label(win, text="Cantidad maxima de dias para reinspeccion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        dias_reinspeccion_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        dias_reinspeccion_entry.insert(0,configuracion['dias_reinspeccion'])
+        
+        fallas_graves_label = tk.Label(win, text="Cantidad de fallas graves para sacar vehiculo de circulacion:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        fallas_graves_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        fallas_graves_entry.insert(0,configuracion['fallas_graves'])
+        
+        meses_citas_label = tk.Label(win, text="Cantidad de meses para desplegar citas:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        meses_citas_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        meses_citas_entry.insert(0,configuracion['meses_citas'])
 
-    iva_label = tk.Label(win, text="% de Impuesto al Valor Agregado (IVA) sobre la tarifa:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
-    iva_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
-    iva_entry.insert(0,configuracion['iva'])
+        iva_label = tk.Label(win, text="% de Impuesto al Valor Agregado (IVA) sobre la tarifa:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        iva_entry = tk.Entry(win,width=20,justify='center', font='Dubai 10')
+        iva_entry.insert(0,configuracion['iva'])
 
-#Widgets configuracion parte 2
+    #Widgets configuracion parte 2
 
-if True:
+    if True:
 
-    tarifas_label = tk.Label(win, text="Tabla de Tarifas:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
+        tarifas_label = tk.Label(win, text="Tabla de Tarifas:", bg=gris_claro, fg="white", font='Dubai 12', anchor="w")
 
-    boton_aplicar = tk.Button(win, text="APLICAR", command=aplicar_configuracion, font='Dubai 12')
-    
-#Widgets cancelar cita
+        boton_aplicar = tk.Button(win, text="APLICAR", command=aplicar_configuracion, font='Dubai 12')
+        
+    #Widgets cancelar cita
 
-if True:
+    if True:
 
-    #Numero de la cita
+        #Numero de la cita
 
-    numero_cita_cancelar_var=tk.StringVar()
-    numero_cita_cancelar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el numero de la cita que desea cancelar',fg='white',bg =gris_claro)
-    numero_cita_cancelar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_cita_cancelar_var)
+        numero_cita_cancelar_var=tk.StringVar()
+        numero_cita_cancelar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el numero de la cita que desea cancelar',fg='white',bg =gris_claro)
+        numero_cita_cancelar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_cita_cancelar_var)
 
-    #Numero de placa
+        #Numero de placa
 
-    numero_placa_cancelar_var=tk.StringVar()
-    numero_placa_cancelar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la placa de la cita que desea cancelar',fg='white',bg =gris_claro)
-    numero_placa_cancelar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_placa_cancelar_var)
+        numero_placa_cancelar_var=tk.StringVar()
+        numero_placa_cancelar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la placa de la cita que desea cancelar',fg='white',bg =gris_claro)
+        numero_placa_cancelar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_placa_cancelar_var)
 
-    cancelar_cita_boton = tk.Button(win, text="Cancelar Cita", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: cancelar_cita(numero_cita_cancelar_entry.get(),numero_placa_cancelar_entry.get(),arbol_citas))
+        cancelar_cita_boton = tk.Button(win, text="Cancelar Cita", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: cancelar_cita(numero_cita_cancelar_entry.get(),numero_placa_cancelar_entry.get(),arbol_citas))
 
-#Widgets ingreso de vehiculos a la estacion
+    #Widgets ingreso de vehiculos a la estacion
 
-if True:
+    if True:
 
-    #Numero de la cita
+        #Numero de la cita
 
-    numero_cita_ingresar_var=tk.StringVar()
-    numero_cita_ingresar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el numero de su cita',fg='white',bg =gris_claro)
-    numero_cita_ingresar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_cita_ingresar_var)
+        numero_cita_ingresar_var=tk.StringVar()
+        numero_cita_ingresar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese el numero de su cita',fg='white',bg =gris_claro)
+        numero_cita_ingresar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_cita_ingresar_var)
 
-    #Numero de placa
+        #Numero de placa
 
-    numero_placa_ingresar_var=tk.StringVar()
-    numero_placa_ingresar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la placa del vehiculo de su cita',fg='white',bg =gris_claro)
-    numero_placa_ingresar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_placa_ingresar_var)
+        numero_placa_ingresar_var=tk.StringVar()
+        numero_placa_ingresar_label=tk.Label(win, font ='Dubai 20', text = 'Ingrese la placa del vehiculo de su cita',fg='white',bg =gris_claro)
+        numero_placa_ingresar_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black',textvariable=numero_placa_ingresar_var)
 
-    ingresar_cita_boton = tk.Button(win, text="Ingresar a la estacion", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: ingresar_cita(numero_cita_ingresar_entry.get(),numero_placa_ingresar_entry.get(),arbol_citas))
+        ingresar_cita_boton = tk.Button(win, text="Ingresar a la estacion", font='Dubai 20', fg='white',bg=gris_oscuro, command=lambda: ingresar_cita(numero_cita_ingresar_entry.get(),numero_placa_ingresar_entry.get(),arbol_citas))
 
-    datos_ingresar_label=tk.Label(win, font ='Dubai 20', text = '',fg='white',bg =gris_claro,justify='left')
+        datos_ingresar_label=tk.Label(win, font ='Dubai 20', text = '',fg='white',bg =gris_claro,justify='left')
+
+    #Widgets lista de fallas
+
+    if True:
+
+        #Menu lista de fallas
+
+        lista_fallas_label=tk.Label(win, font ='Dubai 20', text = 'Lista de fallas',fg='white',bg =gris_claro)
+
+        agregar_falla_menu_boton = tk.Button(win, text="Agregar Falla", font='Dubai 20', fg='white',bg=gris_oscuro,command=agregar_falla)
+        consultar_falla_menu_boton = tk.Button(win, text="Consultar Falla", font='Dubai 20', fg='white',bg=gris_oscuro,command=consultar_falla)
+        modificar_falla_menu_boton = tk.Button(win, text="Modificar Falla", font='Dubai 20', fg='white',bg=gris_oscuro,command=modificar_falla)
+        elminar_falla_menu_boton = tk.Button(win, text="Eliminar Falla", font='Dubai 20', fg='white',bg=gris_oscuro,command=eliminar_falla)
+
+        #Agregar Falla
+
+        agregar_falla_label=tk.Label(win, font ='Dubai 25', text = 'Agregar Falla',fg='white',bg =gris_claro)
+        numero_agregar_falla_label=tk.Label(win, font ='Dubai 15', text = 'Numero de falla',fg='white',bg =gris_claro)
+
+        descripcion_agregar_falla_label=tk.Label(win, font ='Dubai 15', text = 'Descripcion de falla',fg='white',bg =gris_claro)
+        numero_agregar_falla_entry=tk.Entry(win,width=15,bg='white',font='Dubai 15',fg='black')
+
+        tipo_falla_agregar_label=tk.Label(win, font ='Dubai 15', text = 'Tipo de falla',fg='white',bg =gris_claro)
+        tipo_falla_agregar_combobox=ttk.Combobox(win,values=['Leve','Grave'])
+        descripcion_agregar_falla_entry = tk.Text(win,width=40,height=5, font='Dubai 10')
+        agregar_falla_boton=tk.Button(win, text="Agregar Falla", font='Dubai 15', fg='white',bg=gris_oscuro,command=agregar_falla_aux)
+
+        #Consultar Falla
+
+        consultar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Consultar Falla',fg='white',bg =gris_claro)
+        numero_consultar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Numero de falla',fg='white',bg =gris_claro)
+
+        numero_consultar_falla_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black')
+        consultar_falla_boton=tk.Button(win, text="Consultar Falla", font='Dubai 15', fg='white',bg=gris_oscuro,command=consultar_falla_aux)
+
+        datos_consultar_falla_label=tk.Text(win, font ='Dubai 20',fg='white',bg =gris_claro,width=47,height=10,borderwidth=0)
+        
+        #Modificar Falla
+
+        modificar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Modificar Falla',fg='white',bg =gris_claro)
+        numero_modificar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Numero de falla',fg='white',bg =gris_claro)
+        descripcion_modificar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Descripcion de falla',fg='white',bg =gris_claro)
+
+        tipo_falla_modificar_label=tk.Label(win, font ='Dubai 15', text = 'Tipo de falla',fg='white',bg =gris_claro)
+        tipo_falla_modificar_combobox=ttk.Combobox(win,values=['Leve','Grave'])
+        modificar_falla_boton=tk.Button(win, text="Modificar Falla", font='Dubai 15', fg='white',bg=gris_oscuro,command=modificar_falla_aux)
+        aceptar_modificar_boton=tk.Button(win, text="Aceptar", font='Dubai 15', fg='white',bg=gris_oscuro,command=modificar_falla_aux_2)
+
+        numero_modificar_falla_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black')
+        descripcion_modificar_falla_entry = tk.Text(win,width=40,height=5, font='Dubai 10')
+
+        #Eliminar Falla
+
+        eliminar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Eliminar Falla',fg='white',bg =gris_claro)
+        numero_eliminar_falla_label=tk.Label(win, font ='Dubai 20', text = 'Numero de falla',fg='white',bg =gris_claro)
+
+        numero_eliminar_falla_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black')
+
+        eliminar_falla_boton=tk.Button(win, text="Eliminar Falla", font='Dubai 15', fg='white',bg=gris_oscuro,command=eliminar_falla_aux)
+#Creacion de lineas de trabajo al inicio del programa
 
 for i in range(int(configuracion['lineas_trabajo'])):
     lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
@@ -1272,10 +1561,8 @@ boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
 
 win.mainloop()
 
-#TODO: Version 6.0 Tablero de revision
-    #*: Revisar que la cita que se vaya a cancelar no este en la cola de revision
+#TODO: Version 7.0 Tablero de revision
+    #*: Revisar que la cita que se vaya a cancelar no este en la cola de revision cuando parte para agregar a cola de revision ya este hecha
         #TODO: Revisar que esta parte ↑ sirva
-        
-#TODO: Version 7.0 Lista de fallas
 
 #! QUITAR IF FALSE DE INGRESAR CITAS, PUESTO PARA PODER PROBAR CON CUALQUIER CITA SIN PREOCUPARSE POR QUE LA FECHA ESTE EN EL MISMO DIA
