@@ -3,7 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 import datetime
 from validate_email_address import validate_email
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import A3, letter
 from reportlab.pdfgen import canvas
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -25,7 +25,7 @@ centro='center'
 #Definiciones de ventana
 
 win=tk.Tk()
-win.title(f'Reteve 1.0')
+win.title(f'Reteve 7.0')
 win.resizable(tk.FALSE,tk.FALSE)
 win.geometry('800x600')
 win.configure(bg=gris_claro)
@@ -263,6 +263,11 @@ def borrar_items():
     numero_eliminar_falla_entry.place_forget()
     eliminar_falla_boton.place_forget()
 
+    comando_label.place_forget()
+    comando_entry.place_forget()
+    tablero.place_forget()
+    ingresar_comando_boton.place_forget()
+
 
 def menu_principal():
     borrar_items()
@@ -280,7 +285,7 @@ def menu_principal():
 #Clase de vehiculo
 
 class vehiculo:
-    def __init__(self, numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado, fallas):
+    def __init__(self, numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado, fallas_vehiculo):
         self.numero_cita = numero_cita
         self.tipo_cita = tipo_cita
         self.numero_placa = numero_placa
@@ -294,9 +299,9 @@ class vehiculo:
         self.fecha= fecha
         self.hora = hora
         self.estado = estado
-        self.fallas = fallas
+        self.fallas_vehiculo = fallas_vehiculo
     def __repr__(self) -> str:
-        return f'Vehiculo\nNumero Cita: {self.numero_cita} \nTipo de Cita: {self.tipo_cita} \nNumero de Placa: {self.numero_placa} \nTipo de Vehiculo: {self.tipo_vehiculo} \nMarca: {self.marca} \nModelo: {self.modelo} \nPropietario: {self.propietario} \nTelefono: {self.telefono} \nCorreo: {self.correo} \nDireccion: {self.direccion} \nFecha: {self.fecha} \nHora: {self.hora} \nEstado: {self.estado} \n Fallas: {self.fallas}'
+        return f'Vehiculo\nNumero Cita: {self.numero_cita} \nTipo de Cita: {self.tipo_cita} \nNumero de Placa: {self.numero_placa} \nTipo de Vehiculo: {self.tipo_vehiculo} \nMarca: {self.marca} \nModelo: {self.modelo} \nPropietario: {self.propietario} \nTelefono: {self.telefono} \nCorreo: {self.correo} \nDireccion: {self.direccion} \nFecha: {self.fecha} \nHora: {self.hora} \nEstado: {self.estado} \n Fallas: {self.fallas_vehiculo}'
 
 #Funcion para guardar los datos en un diccionario
 
@@ -683,8 +688,9 @@ def paso_programar():
         direccion = direccion_entry.get()
         fecha,hora=fecha_str,hora_str
         estado = "PENDIENTE"
+        fallas_vehiculo=[]
 
-        cita = vehiculo(numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado)
+        cita = vehiculo(numero_cita, tipo_cita, numero_placa, tipo_vehiculo, marca, modelo, propietario, telefono, correo, direccion, fecha,hora, estado,fallas_vehiculo)
         for i in citas_programadas:
             if i.fecha == cita.fecha and i.numero_placa==cita.numero_placa:
                 if i.tipo_cita == cita.tipo_cita:
@@ -717,7 +723,6 @@ def paso_programar():
 def enviar_email_cita(cita):
     try:
         msg = MIMEMultipart()
-    # setup the parameters of the message 
         password = "npglayqvauxdpyhq"
         msg['From'] = "emailsproyectopython@gmail.com"
         msg['To'] = cita.correo
@@ -728,12 +733,9 @@ def enviar_email_cita(cita):
         else:
             texto=f'Hola, {cita.propietario}, usted ha agendado una cita en RETEVE para su vehiculo el dia {cita.fecha} a las {cita.hora} para su vehiculo {cita.marca} {cita.modelo} de placa {cita.numero_placa}, su numero de cita es el {cita.numero_cita}, el tipo de cita es una cita por reinspeccion'
         msg.attach(MIMEText(texto, 'plain'))
-        # create server 
         server = smtplib.SMTP('smtp.gmail.com: 587')
         server.starttls()
-        # Login Credentials for sending the mail 
         server.login(msg['From'], password)
-        # send the message via the server. 
         server.send_message(msg)
         server.quit()
         print ('Email enviado exitosamente')   
@@ -926,7 +928,7 @@ def aplicar_configuracion():
         for i in lineas:
             print(lineas[i]['espera'] == [],lineas[i]['revision']=={'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None})
             if lineas[i]['espera'] == [] and lineas[i]['revision']=={'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}:
-                vacia=True
+                pass
             else:
                 vacia=False
         if vacia:
@@ -935,6 +937,7 @@ def aplicar_configuracion():
                 lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
         else:
             messagebox.showerror('Error','Solo puede disminuir la cantidad de lineas si la cola de espera y de revision esta vacia')
+            return
     else:
         for i in range(int(lineas_trabajo)):
             lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
@@ -980,6 +983,7 @@ def cancelar_cita_gui():
 
 def cancelar_cita(numero_cita, numero_placa, arbol):
     global arbol_citas
+    cita_en_linea=False
     if numero_cita=='' or numero_placa=='' or len(numero_placa)>8 or (not numero_cita.isdigit()) or int(numero_cita)<=0:
         messagebox.showerror('Error','Debe ingresar valores validos')
         numero_cita_cancelar_entry.config(bg=rosado_error)
@@ -994,16 +998,18 @@ def cancelar_cita(numero_cita, numero_placa, arbol):
                     for puesto in lineas[linea]['revision']:
                         if lineas[linea]['revision'][puesto]==cita_actual:
                             messagebox.showerror('Error','No se puede cancelar una cita que ya esta en el proceso de revision')
-                        else:
-                            ask=messagebox.askyesno('Cancelar Cita','Desea cancelar la cita ingresada?')
-                            if ask:
-                                messagebox.showinfo('Cancelar Cita','Cita Cancelada')
-                                cita_actual.estado='CANCELADA'
-                                guardar_datos()
-                                return
-                            else:
-                                messagebox.showinfo('Cancelar Cita','No se ha cancelado la cita')
-                                return
+                            cita_en_linea==True
+                            return
+            if not cita_en_linea:
+                ask=messagebox.askyesno('Cancelar Cita','Desea cancelar la cita ingresada?')
+                if ask:
+                    messagebox.showinfo('Cancelar Cita','Cita Cancelada')
+                    cita_actual.estado='CANCELADA'
+                    guardar_datos()
+                    return
+                else:
+                    messagebox.showinfo('Cancelar Cita','No se ha cancelado la cita')
+                    return
             else:
                 messagebox.showerror('Error','El estado de esta cita ya es CANCELADA')
         else:
@@ -1064,9 +1070,16 @@ def ingresar_cita_gui():
     boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
 
 def ingresar_cita(numero_cita, numero_placa, arbol):
+    if arbol_citas==None:
+        messagebox.showerror('Error','No hay citas registradas')
+        return
+    else:
+        ingresar_cita_aux(numero_cita, numero_placa, arbol)
+
+def ingresar_cita_aux(numero_cita, numero_placa, arbol):
     print(str(datetime.datetime.now())[:10])
     print(str(datetime.datetime.now())[11:16])
-    global arbol_citas
+    global arbol_citas,lineas
     if numero_cita=='' or numero_placa=='' or len(numero_placa)>8 or (not numero_cita.isdigit()) or int(numero_cita)<=0:
         messagebox.showerror('Error','Debe ingresar valores validos')
         numero_cita_ingresar_entry.config(bg=rosado_error)
@@ -1077,7 +1090,7 @@ def ingresar_cita(numero_cita, numero_placa, arbol):
         cita_actual=arbol[0]
         if cita_actual.numero_cita == int(numero_cita) and cita_actual.numero_placa == str(numero_placa):
             if cita_actual.estado=='PENDIENTE':
-                if False:#not validar_fecha_ingreso(str(datetime.datetime.now())[:10],str(datetime.datetime.now())[11:16],str(cita_actual.fecha),str(cita_actual.hora)):
+                if not validar_fecha_ingreso(str(datetime.datetime.now())[:10],str(datetime.datetime.now())[11:16],str(cita_actual.fecha),str(cita_actual.hora)):
                     messagebox.showerror('Error','Unicamente puede ingresar el dia de su cita con un maximo de una hora de anticipacion')
                 else:
                     borrar_items()
@@ -1088,8 +1101,8 @@ def ingresar_cita(numero_cita, numero_placa, arbol):
                     datos_ingresar_label.config(text=texto)
                     datos_ingresar_label.place(relx=0.05,rely=0.1)
                     lineas[linea_con_menos()]['espera'].append(cita_actual)
-                    for i in lineas:
-                        print(lineas[i])
+                    guardar_datos()
+                    return
             else:
                 messagebox.showerror('Error','El estado de esta cita es CANCELADA')
         else:
@@ -1276,6 +1289,617 @@ def eliminar_falla():
 
     boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
 
+#Funciones tablero de revision
+
+def cuenta_fallas(lista):
+    res={'Grave':0,'Leve':0}
+    for i in lista:
+        for falla in fallas:
+            if i==falla:
+                res[falla][1]+=1
+    if res['Grave']==0:
+        return 'APROBADA'
+    elif res['Grave'] in range(1,configuracion['fallas_graves']):
+        return 'REINSPECCION'
+    else:
+        return 'SACAR DE CIRCULACION'
+
+def puesto_siguiente(puesto):
+    return f'puesto_{int(puesto[-1])+1}'
+
+def buscar_cita_por_placa(numero_placa, arbol):
+    if arbol is None:
+        return None  # El árbol está vacío, no hay citas para buscar
+    
+    cita_actual = arbol[0]
+    if cita_actual.numero_placa == numero_placa:
+        return cita_actual  # Se encontró la cita con el número de placa buscado
+    
+    # Buscar en la sublista izquierda y derecha del árbol
+    cita_encontrada = buscar_cita_por_placa(numero_placa, arbol[1])
+    if cita_encontrada is None:
+        cita_encontrada = buscar_cita_por_placa(numero_placa, arbol[2])
+    
+    return cita_encontrada
+
+def palabra_rojo(word):
+    tablero.tag_config("red_tag", foreground="red")
+    if word=='':
+        messagebox.showerror('Error','Ingrese una palabra valida')
+        return
+    encontrada=False
+    offset = '+%dc' % len(word)
+
+    pos_i = tablero.search(word, '1.0', tk.END)
+
+    while pos_i:
+        pos_f = pos_i + offset
+        print (pos_i, pos_f)
+        tablero.tag_add('red_tag', pos_i, pos_f)
+
+        pos_i = tablero.search(word, pos_f, tk.END)
+        encontrada=True
+    if not encontrada:
+        messagebox.showerror('Error','No se ha encontrado la palabra')
+
+def comando_t(placa):
+    global lineas
+    esta=False
+    puesto_placa='espera'
+    puesto_siguiente=None
+    #print(lineas)
+    for i_i,i in enumerate(lineas):
+        if buscar_cita_por_placa(placa, arbol_citas) in lineas[i]['espera']:
+            for item_espera in lineas[i]['espera']:
+                if item_espera.numero_placa==lineas[i]['espera'][0].numero_placa and item_espera.numero_placa==placa:
+                    print(item_espera.numero_placa, lineas[i]['espera'][0].numero_placa)
+                    esta=True
+                    if lineas[i]['revision']['puesto_1']!=None:
+                        messagebox.showerror('Error','El siguiente puesto no esta vacio')
+                        return
+                    else:
+                        esta=True
+                        lineas[i]['espera'].pop(0)
+                        lineas[i]['revision']['puesto_1']=buscar_cita_por_placa(placa, arbol_citas)
+                        tablero.config(state='normal')
+                        tablero.delete('1.0', tk.END)
+                        #Vuelve a leer el diccionario para ingresar los datos
+                        for i_i,i in enumerate(reversed(lineas)):
+                            tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+                        tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+                        for linea in lineas:
+                            for puesto in lineas[linea]['revision']:
+                                if lineas[linea]['revision'][puesto]!= None:
+                                    for falla in lineas[linea]['revision'][puesto].fallas_vehiculo:
+                                        if falla[1]=='Grave':
+                                            palabra_rojo(placa)
+                        tablero.config(state='disabled')
+                        guardar_datos()
+                        return
+                else:
+                    messagebox.showerror('Error','No puede avanzar si no es la primera placa en la cola de espera')
+                    return
+        else:
+            #Por cada puesto en la cola de revision de la linea actual
+            for puesto in lineas[i]['revision']:
+                #Si la placa esta en el puesto actual se actualiza la variable esta para saber que se encontro
+                if lineas[i]['revision'][puesto]==None:
+                    pass
+                elif placa ==lineas[i]['revision'][puesto].numero_placa:
+                    esta=True
+                    print(puesto)
+                    puesto_placa=puesto
+                    print('pp',puesto_placa)
+                    puesto_siguiente = 'puesto_' + str(int(puesto[7:]) + 1)
+                    if puesto=='puesto_5':
+                        messagebox.showerror('Error','No puede avanzar si se encuentra en el ultimo puesto')
+                        return
+                    else:
+                        if lineas[i]['revision'][puesto_siguiente]!=None:
+                            messagebox.showerror('Error','El siguiente puesto no esta vacio')
+                            return
+                        else:
+                            if puesto=='puesto_1':
+                                lineas[i]['revision']['puesto_2']=lineas[i]['revision']['puesto_1']
+                                if lineas[i]['espera']!=[]:
+                                    lineas[i]['revision']['puesto_1']=lineas[i]['espera'][0]
+                                    lineas[i]['espera'].pop(0)
+                                else:
+                                    lineas[i]['revision']['puesto_1']=None
+                                print(lineas)
+
+                            elif puesto=='puesto_2':
+                                lineas[i]['revision']['puesto_3']=lineas[i]['revision']['puesto_2']
+                                lineas[i]['revision']['puesto_2']=lineas[i]['revision']['puesto_1']
+                                if lineas[i]['espera']!=[]:
+                                    lineas[i]['revision']['puesto_1']=lineas[i]['espera'][0]
+                                    lineas[i]['espera'].pop(0)
+                                else:
+                                    lineas[i]['revision']['puesto_1']=None
+
+                            elif puesto=='puesto_3':
+                                lineas[i]['revision']['puesto_4']=lineas[i]['revision']['puesto_3']
+                                lineas[i]['revision']['puesto_3']=lineas[i]['revision']['puesto_2']
+                                lineas[i]['revision']['puesto_2']=lineas[i]['revision']['puesto_1']
+                                if lineas[i]['espera']!=[]:
+                                    lineas[i]['revision']['puesto_1']=lineas[i]['espera'][0]
+                                    lineas[i]['espera'].pop(0)
+                                else:
+                                    lineas[i]['revision']['puesto_1']=None
+
+                            elif puesto=='puesto_4':
+                                lineas[i]['revision']['puesto_5']=lineas[i]['revision']['puesto_4']
+                                lineas[i]['revision']['puesto_4']=lineas[i]['revision']['puesto_3']
+                                lineas[i]['revision']['puesto_3']=lineas[i]['revision']['puesto_2']
+                                lineas[i]['revision']['puesto_2']=lineas[i]['revision']['puesto_1']
+                                if lineas[i]['espera']!=[]:
+                                    lineas[i]['revision']['puesto_1']=lineas[i]['espera'][0]
+                                    lineas[i]['espera'].pop(0)
+                                else:
+                                    lineas[i]['revision']['puesto_1']=None
+                            else:
+                                messagebox.showerror("'Error",'Ha ocurrido un error inesperado, lo mas probable es que se haya manipulado el archivo de datos')
+                        tablero.config(state='normal')
+                        tablero.delete('1.0', tk.END)
+                        #Vuelve a leer el diccionario para ingresar los datos
+                        for i_i,i in enumerate(reversed(lineas)):
+                            tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+                        tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+                        for linea in lineas:
+                            for puesto in lineas[linea]['revision']:
+                                if lineas[linea]['revision'][puesto]!= None:
+                                    for falla in lineas[linea]['revision'][puesto].fallas_vehiculo:
+                                        if falla[1]=='Grave':
+                                            palabra_rojo(placa)
+                        tablero.config(state='disabled')
+                        guardar_datos()
+                        return
+                else:
+                    pass
+    if not esta:
+        messagebox.showerror('Error','Esta placa no existe o no ha ingresado a la estacion')
+        return
+    # esta=False
+    # for i_i,linea in enumerate(lineas):
+    #     if lineas[linea]['espera']==[]:
+    #         pass
+    #     else:
+    #         if buscar_cita_por_placa(placa, arbol_citas) in lineas[linea]['espera']:
+    #             esta=True
+    #             if buscar_cita_por_placa(placa, arbol_citas)!=lineas[linea]['espera'][0]:
+    #                 messagebox.showerror('Error','Solo puede avanzar si es el siguiente vehiculo en la cola de espera')
+    #                 return
+    #             else:
+    #                 if lineas[linea]['revision']['puesto_1']==None:
+    #                     lineas[linea]['revision']['puesto_1']=lineas[linea]['espera'][0]
+    #                     lineas[linea]['espera'].pop(0)
+    #                 else:
+    #                     messagebox.showerror('Error','El siguiente puesto no esta vacio')
+    #                     return
+    #         else:
+    #             if lineas[linea]['revision']['puesto_5']==buscar_cita_por_placa(placa, arbol_citas):
+    #                 esta=True
+    #                 messagebox.showerror('Error','No puede avanzar si la placa se encuentra en el ultimo puesto')
+    #                 return
+    #             else:
+    #                 for puesto in lineas[linea]['revision']:
+    #                     if lineas[linea]['revision'][puesto]==None:
+    #                         pass
+    #                     else:
+    #                         print(lineas[linea]['revision'][puesto])
+    #                         if lineas[linea]['revision'][puesto]==buscar_cita_por_placa(placa, arbol_citas):
+    #                             esta=True
+    #                             puesto_siguiente = 'puesto_' + str(int(puesto[7:]) + 1)
+    #                             if puesto_siguiente!=None:
+    #                                 messagebox.showerror('Error','No puede avanzar si el siguiente puesto no esta vacio')
+    #                                 return
+    #                             else:
+    #                                 #el puesto siguiente agarra el valor del puesto actal
+    #                                 lineas[linea]['revision'][puesto_siguiente]=lineas[linea]['revision'][puesto]
+
+    #                                 #El puesto actual intenta agarrar el valor del puesto anterior, si da error es porque el puesto no existe entonces saca el siguiente vehiculo de la cola de espera,
+    #                                 #si no da error es porque lo logro y lo vuelve a hacer hasta un maximo de 4 veces que son los puestos de trabajo
+    #                                 try:
+    #                                     lineas[linea]['revision'][puesto]=lineas[linea]['revision']['puesto_' + str(int(puesto[7:]) -1)]
+    #                                     try:
+    #                                         lineas[linea]['revision'][puesto]=lineas[linea]['revision']['puesto_' + str(int(puesto[7:]) -1)]
+    #                                         try:
+    #                                             lineas[linea]['revision'][puesto]=lineas[linea]['revision']['puesto_' + str(int(puesto[7:]) -1)]
+    #                                             try:
+    #                                                 lineas[linea]['revision'][puesto]=lineas[linea]['revision']['puesto_' + str(int(puesto[7:]) -1)]
+    #                                             except:
+    #                                                 pass
+    #                                         except:
+    #                                             pass
+    #                                     except:
+    #                                         pass
+    #                                 except:
+    #                                     if lineas[linea]['espera']!=[]: 
+    #                                         lineas[linea]['revision']['puesto_1']=lineas[linea]['espera'][0]
+    #                                         lineas[linea]['espera'].pop(0)
+    #                                     else:
+    #                                         pass
+    #                                 tablero.config(state='normal')
+    #                                 tablero.delete('1.0', tk.END)
+    #                                 #Vuelve a leer el diccionario para ingresar los datos
+    #                                 for i_i,i in enumerate(reversed(lineas)):
+    #                                     tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+    #                                 tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+    #                                 for linea in lineas:
+    #                                     for puesto in lineas[linea]['revision']:
+    #                                         if lineas[linea]['revision'][puesto]!= None:
+    #                                             for falla in lineas[linea]['revision'][puesto].fallas_vehiculo:
+    #                                                 if falla[1]=='Grave':
+    #                                                     palabra_rojo(placa)
+    #                                 tablero.config(state='disabled')
+    #                                 guardar_datos()
+    #                                 return
+    #                         else:
+    #                             pass
+                                    
+
+    # if not esta:
+    #     messagebox.showerror('Error','Esta placa no existe o no ha ingresado a la estacion')
+    #     return
+
+                    
+
+def comando_u(placa):
+    global lineas
+    esta=False
+    puesto_placa=None
+    print(lineas)
+    for i_i,i in enumerate(lineas):
+        for item_espera in lineas[i]['espera']:
+            if item_espera.numero_placa==lineas[i]['espera'][0].numero_placa:
+                esta=True
+                puesto_siguiente='puesto_1'
+                if lineas[i]['revision'][puesto_siguiente]!=None:
+                    messagebox.showerror('Error','El siguiente puesto no esta vacio')
+                    return
+                else:
+                    esta=True
+                    lineas[i]['espera'].pop(0)
+                    lineas[i]['revision'][puesto_siguiente]=buscar_cita_por_placa(placa, arbol_citas)
+                    tablero.config(state='normal')
+                    tablero.delete('1.0', tk.END)
+                    #Vuelve a leer el diccionario para ingresar los datos
+                    for i_i,i in enumerate(reversed(lineas)):
+                        tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+                    tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+                    for linea in lineas:
+                        for puesto in lineas[linea]['revision']:
+                            if lineas[linea]['revision'][puesto]!= None:
+                                for falla in lineas[linea]['revision'][puesto].fallas_vehiculo:
+                                    if falla[1]=='Grave':
+                                        palabra_rojo(placa)
+                    tablero.config(state='disabled')
+                    for i in lineas:
+                        print(lineas[i])
+                    guardar_datos()
+                    return
+            else:
+                messagebox.showerror('Error','No puede avanzar si no es la primera placa en la cola de espera')
+                return
+        #Por cada puesto en la cola de revision de la linea actual
+        for puesto in lineas[i]['revision']:
+            #Si la placa esta en el puesto actual se actualiza la variable esta para saber que se encontro
+            if lineas[i]['revision'][puesto]==None:
+                pass
+            elif placa ==lineas[i]['revision'][puesto].numero_placa:
+                esta=True
+                print(puesto)
+                puesto_siguiente = 'puesto_' + str(int(puesto[7:]) + 1)
+                if puesto=='puesto_5':
+                    messagebox.showerror('Error','No puede avanzar si se encuentra en el ultimo puesto')
+                    return
+                else:
+                    if lineas[i]['revision'][puesto_siguiente]!=None:
+                        messagebox.showerror('Error','El siguiente puesto no esta vacio')
+                        return
+                    else:
+                        lineas[i]['revision'][puesto]=None
+                        lineas[i]['revision'][puesto_siguiente]=buscar_cita_por_placa(placa, arbol_citas)
+                    tablero.config(state='normal')
+                    tablero.delete('1.0', tk.END)
+                    #Vuelve a leer el diccionario para ingresar los datos
+                    for i_i,i in enumerate(reversed(lineas)):
+                        tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+                    tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+                    for linea in lineas:
+                        for puesto in lineas[linea]['revision']:
+                            if lineas[linea]['revision'][puesto]!= None:
+                                for falla in lineas[linea]['revision'][puesto].fallas_vehiculo:
+                                    if falla[1]=='Grave':
+                                        palabra_rojo(placa)
+                    tablero.config(state='disabled')
+                    guardar_datos()
+                    return
+            else:
+                pass
+    if not esta:
+        messagebox.showerror('Error','Esta placa no existe o no ha ingresado a la estacion')
+        return
+
+def obtener_placa_y_falla(string):
+    partes = string.split('_')
+    if len(partes) != 2:
+        messagebox.showerror('Error','No se ha ingresado un codigo E valido')
+    placa = partes[0][1:]
+    falla = partes[1]
+    return placa, int(falla)
+
+
+def comando_e(placa,falla):
+    global lineas
+    esta=False
+    puesto_placa=None
+    print(lineas)
+    for i_i,i in enumerate(lineas):
+        for item_espera in lineas[i]['espera']:
+            if item_espera.numero_placa==placa:
+                messagebox.showerror('Error','No se le peuden agregar fallas a un vehiculo en cola de espera')
+                return
+        for puesto in lineas[i]['revision']:
+            if lineas[i]['revision'][puesto]!= None:
+                if lineas[i]['revision'][puesto].numero_placa==placa:
+                    lineas[i]['revision'][puesto].fallas_vehiculo.append(fallas[falla])
+                    print(lineas[i]['revision'][puesto])
+                    if fallas[falla][1]=='Grave':
+                        palabra_rojo(placa)
+                else:
+                    continue
+            else:
+                continue
+
+def enviar_email_resultado(correo,archivo):
+    try:
+        msg = MIMEMultipart()
+    # setup the parameters of the message 
+        password = "npglayqvauxdpyhq"
+        msg['From'] = "emailsproyectopython@gmail.com"
+        msg['To'] = f"{correo}"
+        msg['Subject'] = "Resultado de revision RETEVE"
+        binary_pdf = open(archivo, 'rb')
+    
+        payload = MIMEBase('application', 'octate-stream', Name=archivo)
+        payload.set_payload((binary_pdf).read())
+        
+        # enconding the binary into base64
+        encoders.encode_base64(payload)
+        
+        # add header with pdf name
+        payload.add_header('Content-Decomposition', 'attachment', filename=archivo)
+        msg.attach(payload)
+        # create server 
+        server = smtplib.SMTP('smtp.gmail.com: 587')
+        server.starttls()
+        # Login Credentials for sending the mail 
+        server.login(msg['From'], password)
+        # send the message via the server. 
+        server.sendmail(msg['From'], msg['To'], msg.as_string())
+        server.quit()
+        print ('Email enviado exitosamente')   
+    except:
+        print('Ha ocurrido un error con la comunicacion al servidor, verifique su conexion a internet')
+
+def enviar_email_certificado(correo,archivo):
+    try:
+        msg = MIMEMultipart()
+    # setup the parameters of the message 
+        password = "npglayqvauxdpyhq"
+        msg['From'] = "emailsproyectopython@gmail.com"
+        msg['To'] = f"{correo}"
+        msg['Subject'] = "Certificado de transito RETEVE"
+        binary_pdf = open(archivo, 'rb')
+    
+        payload = MIMEBase('application', 'octate-stream', Name=archivo)
+        payload.set_payload((binary_pdf).read())
+        
+        # enconding the binary into base64
+        encoders.encode_base64(payload)
+        
+        # add header with pdf name
+        payload.add_header('Content-Decomposition', 'attachment', filename=archivo)
+        msg.attach(payload)
+        # create server 
+        server = smtplib.SMTP('smtp.gmail.com: 587')
+        server.starttls()
+        # Login Credentials for sending the mail 
+        server.login(msg['From'], password)
+        # send the message via the server. 
+        server.sendmail(msg['From'], msg['To'], msg.as_string())
+        server.quit()
+        print ('Email enviado exitosamente')   
+    except:
+        print('Ha ocurrido un error con la comunicacion al servidor, verifique su conexion a internet')
+
+def generar_pdf_resultado(cita):
+    c = canvas.Canvas("resultado_de_revision.pdf", pagesize=letter)
+    y=750
+    c.drawString(50,y,'RESULTADO DE REVISION RETEVE')
+    y-=20
+    c.drawString(50,y,f'Numero de cita: {cita.numero_cita}')
+    y-=20
+    c.drawString(50,y,f'Tipo de cita: {"Cita por primera vez" if cita.tipo_cita == 0 else "Cita por reinspeccion"}')
+    y-=20
+    c.drawString(50,y,f'Numero de placa: {cita.numero_placa}')
+    y-=20
+    c.drawString(50,y,f'Tipo de vehiculo: {cita.tipo_vehiculo}')
+    y-=20
+    c.drawString(50,y,f'Vehiculo: {cita.marca} {cita.modelo}')
+    y-=20
+    c.drawString(50,y,f'Propietario: {cita.propietario}')
+    y-=20
+    c.drawString(50,y,f'Telefono: {cita.telefono}')
+    y-=20
+    c.drawString(50,y,f'Correo Electronico: {cita.correo}')
+    y-=20
+    c.drawString(50,y,f'Direccion: {cita.direccion}')
+    y-=20
+    c.drawString(50,y,f'Fecha de la cita: {cita.fecha} a las {cita.hora}')
+    y-=20
+    c.drawString(50,y,f'Resultado de la cita: {cita.estado}')
+    y-=20
+    if cita.fallas_vehiculo==[]:
+        c.drawString(50,y,f'Fallas del vehiculo: Ninguna')
+    else:
+        c.drawString(50,y,f'Fallas del vehiculo:')
+    y-=20
+    for falla in cita.fallas_vehiculo: 
+        y-=20
+        c.drawString(50,y,f'-Falla {falla[1]}, {falla[0]}')
+    c.save()
+
+    if cita.estado=='APROBADA':
+        c = canvas.Canvas("certificado.pdf", pagesize=letter)
+        y=750
+        c.drawString(50,y,'CERTIFICADO DE TRANSITO RETEVE')
+        c.drawString(50,y,'CERTIFICADO DE TRANSITO RETEVE')
+        c.drawString(50,y,'CERTIFICADO DE TRANSITO RETEVE')
+        y-=40
+        c.drawString(50,y,f'Numero de placa: {cita.numero_placa}')
+        y-=20
+        c.drawString(50,y,f'Tipo de vehiculo: {cita.tipo_vehiculo}')
+        y-=20
+        c.drawString(50,y,f'Vehiculo: {cita.marca} {cita.modelo}')
+        y-=20
+        c.drawString(50,y,f'Propietario: {cita.propietario}')
+        y-=20
+        fecha_str=str(cita.fecha)
+        nueva_fecha_str=str(int(str(fecha_str)[:4])+1)+fecha_str[4:]
+        c.drawString(50,y,f'Vigente hasta: {nueva_fecha_str}')
+        c.save()
+
+
+    enviar_email_resultado(cita.correo,'resultado_de_revision.pdf')
+    if cita.estado=='APROBADA':
+        enviar_email_resultado(cita.correo,'certificado.pdf')
+    messagebox.showinfo('RETEVE','Se ha enviado a su correo el resultado de la cita y el certificado en caso de que haya aprobado')
+
+def comando_f(placa):
+    global lineas
+    esta=False
+    puesto_placa=None
+    linea_placa=None
+    cita_placa=buscar_cita_por_placa(placa,arbol_citas)
+    for i_i,i in enumerate(lineas):
+        #Por cada puesto en la cola de revision de la linea actual
+        for puesto in lineas[i]['revision']:
+            #Si la placa esta en el puesto actual se actualiza la variable esta para saber que se encontro
+            if lineas[i]['revision'][puesto]==None:
+                pass
+            elif placa ==lineas[i]['revision'][puesto].numero_placa:
+                esta=True
+                print(puesto)
+                if puesto!='puesto_5':
+                    messagebox.showerror('Error','No puede avanzar si no se encuentra en el ultimo puesto')
+                    return
+                else:
+                    linea_placa=i
+                    buscar_cita_por_placa(placa,arbol_citas).estado=cuenta_fallas(buscar_cita_por_placa(placa,arbol_citas).fallas_vehiculo)
+            else:
+                pass
+    if not esta:
+        messagebox.showerror('Error','Esta placa no existe o no ha ingresado a la estacion')
+        return
+    for linea in lineas:
+        if linea==linea_placa:
+            lineas[linea]['revision']['puesto_5']=lineas[linea]['revision']['puesto_4']
+            lineas[linea]['revision']['puesto_4']=lineas[linea]['revision']['puesto_3']
+            lineas[linea]['revision']['puesto_3']=lineas[linea]['revision']['puesto_2']
+            lineas[linea]['revision']['puesto_2']=lineas[linea]['revision']['puesto_1']
+            try:
+                lineas[linea]['revision']['puesto_1']=lineas[linea]['espera'][0]
+                try:
+                    lineas[linea]['espera'][0].remove()
+                except:
+                    pass
+            except:
+                pass
+    for i in lineas :
+        print(lineas[i])
+    tablero.config(state='normal')
+    tablero.delete('1.0', tk.END)
+    #Vuelve a leer el diccionario para ingresar los datos
+    for i_i,i in enumerate(reversed(lineas)):
+        tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+    tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+    tablero.config(state='disabled')
+    guardar_datos()
+    generar_pdf_resultado(cita_placa)
+    return
+    
+def tablero_aux():
+    comando=comando_entry.get()
+    if comando=='':
+        messagebox.showerror('Error','No se ha ingresado un comando')
+        return
+    
+    if comando=='R':
+        menu_principal()
+        return
+    
+    if comando[0]=='T':
+        if len(comando[1:]) not in range (1,8):
+            messagebox.showerror('Error','No se ha ingresado una placa valida')
+        else:
+            comando_t(comando[1:])
+
+    elif comando[0]=='U':
+        print('PLACA:', comando[1:])
+        if len(comando[1:]) not in range (1,8):
+            messagebox.showerror('Error','No se ha ingresado una placa valida')
+        else:
+            comando_u(comando[1:])
+
+    elif comando[0]=='E':
+        placa,falla=obtener_placa_y_falla(comando)
+        if len(placa)not in range(1,8):
+            messagebox.showerror('Error','No se ha ingresado una placa valida')
+        elif falla not in fallas:
+            messagebox.showerror('Error','La falla ingresada no existe')
+        else:
+            comando_e(placa,falla)
+
+    elif comando[0]=='F':
+        if len(comando[1:]) not in range (1,8):
+            messagebox.showerror('Error','No se ha ingresado una placa valida')
+        else:
+            comando_f(comando[1:])
+    else:
+        messagebox.showerror('Error','No se ha ingresado un comando valido')
+        return
+
+def tablero():
+    borrar_items()    
+    print(fallas)
+    boton_menu.place(relx=0.05,rely=0.05,anchor=centro)
+
+    comando_label.place(relx=0.1,rely=0.9,anchor=centro)
+    comando_entry.place(relx=0.25,rely=0.9,anchor=centro)
+    tablero.config(state='normal')
+    tablero.delete('1.0', tk.END)
+    #Vuelve a leer el diccionario para ingresar los datos
+    for i_i,i in enumerate(reversed(lineas)):
+        tablero.insert('0.0',f'\n\nLinea {list(lineas).index(i)+1}:         {"            "if lineas[i]["revision"]["puesto_1"]==None else lineas[i]["revision"]["puesto_1"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_2"]==None else lineas[i]["revision"]["puesto_2"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_3"]==None else lineas[i]["revision"]["puesto_3"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_4"]==None else lineas[i]["revision"]["puesto_4"].numero_placa}     {"            "if lineas[i]["revision"]["puesto_5"]==None else lineas[i]["revision"]["puesto_5"].numero_placa}')
+
+    tablero.insert('0.0','Linea        Puesto 1    Puesto 2    Puesto 3    Puesto 4    Puesto 5')
+    for linea in lineas:
+        for puesto in lineas[linea]['revision']:
+            if lineas[linea]['revision'][puesto]!= None:
+                for falla in lineas[linea]['revision'][puesto].fallas_vehiculo:
+                    if falla[1]=='Grave':
+                        palabra_rojo(lineas[linea]['revision'][puesto].numero_placa)
+    tablero.config(state='disabled')
+    tablero.place(relx=0.5,rely=0.5,anchor=centro)
+    ingresar_comando_boton.place(relx=0.45,rely=0.9,anchor=centro)
 #Funcion para desplegar la informacion del programa
 
 def acerca_de():
@@ -1302,7 +1926,7 @@ if True:
         boton_programar=tk.Button(win, text='PROGRAMAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=programar_citas)
         boton_cancelar=tk.Button(win, text='CANCELAR CITAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=cancelar_cita_gui)
         boton_ingreso=tk.Button(win, text='INGRESO DE VEHICULOS A LA ESTACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=ingresar_cita_gui)
-        boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
+        boton_tablero=tk.Button(win, text='TABLERO DE REVISION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=tablero)
         boton_fallas=tk.Button(win, text='LISTA DE FALLAS', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=menu_lista_fallas)
         boton_configuracion=tk.Button(win, text='CONFIGURACION', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0,command=configuracion_pt1)
         boton_ayuda=tk.Button(win, text='AYUDA', fg='white',bg = gris_claro,font ='Dubai 10 bold',border=0)
@@ -1548,21 +2172,27 @@ if True:
         numero_eliminar_falla_entry=tk.Entry(win,width=15,bg='white',font='Dubai 20',fg='black')
 
         eliminar_falla_boton=tk.Button(win, text="Eliminar Falla", font='Dubai 15', fg='white',bg=gris_oscuro,command=eliminar_falla_aux)
-#Creacion de lineas de trabajo al inicio del programa
 
-for i in range(int(configuracion['lineas_trabajo'])):
-    lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
+    #Widgets tablero de revision
 
-#Widgets que deben aparecer al inicio del programa
+    if True:
+        tablero=tk.Text(win, font ='Dubai 12',fg='white',bg =gris_claro,width=50,height=15,borderwidth=0)
+        comando_label=tk.Label(win, font ='Dubai 10', text = 'COMANDO:',fg='white',bg =gris_claro)
+        comando_entry=tk.Entry(win,width=15,bg='white',font='10',fg='black')
+        ingresar_comando_boton=tk.Button(win, text="Ingresar Comando", font='Dubai 10', fg='white',bg=gris_oscuro,command=tablero_aux)
 
-label_inicio.place(relx=0.5,rely=0.3,anchor=centro)
-boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
+#Inicio de programa
 
+if True:
+
+    #Creacion de lineas de trabajo al inicio del programa
+    if lineas=={}:
+        for i in range(int(configuracion['lineas_trabajo'])):
+            lineas.update({f'linea_{i+1}':{'espera':[],'revision':{'puesto_1':None,'puesto_2':None,'puesto_3':None,'puesto_4':None,'puesto_5':None}}})
+
+    #Widgets que deben aparecer al inicio del programa
+
+    label_inicio.place(relx=0.5,rely=0.3,anchor=centro)
+    boton_inicio.place(relx=0.5,rely=0.6,anchor=centro)
 
 win.mainloop()
-
-#TODO: Version 7.0 Tablero de revision
-    #*: Revisar que la cita que se vaya a cancelar no este en la cola de revision cuando parte para agregar a cola de revision ya este hecha
-        #TODO: Revisar que esta parte ↑ sirva
-
-#! QUITAR IF FALSE DE INGRESAR CITAS, PUESTO PARA PODER PROBAR CON CUALQUIER CITA SIN PREOCUPARSE POR QUE LA FECHA ESTE EN EL MISMO DIA
